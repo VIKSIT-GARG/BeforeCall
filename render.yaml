@@ -1,0 +1,69 @@
+# Render Deployment Configuration for Meeting Prep Assistant
+# This file documents the required services and configuration.
+# Actual secrets must be set in Render Dashboard, not in this file.
+
+services:
+  # Main Next.js Web Service
+  - type: web
+    name: meeting-prep-assistant
+    runtime: node
+    plan: starter
+    region: oregon
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: meeting-prep-db
+          property: connectionString
+      - key: TAVILY_API_KEY
+        sync: false
+      - key: LLM_PROVIDER
+        value: production
+      - key: PRODUCTION_LLM_API_KEY
+        sync: false
+      - key: PRODUCTION_LLM_MODEL
+        value: gpt-4o-mini
+      - key: NEXT_PUBLIC_APP_URL
+        value: https://meeting-prep-assistant.onrender.com
+      - key: AUTH_SECRET
+        sync: false
+      - key: RATE_LIMIT_WINDOW_MS
+        value: "60000"
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: "60"
+
+  # Background Worker for Research Jobs (optional - enable if research exceeds 30s)
+  # - type: worker
+  #   name: meeting-prep-research-worker
+  #   runtime: node
+  #   plan: starter
+  #   buildCommand: npm ci && npm run build
+  #   startCommand: npm run worker:start
+  #   envVars:
+  #     - key: NODE_ENV
+  #       value: production
+  #     - key: DATABASE_URL
+  #       fromDatabase:
+  #         name: meeting-prep-db
+  #         property: connectionString
+  #     - key: TAVILY_API_KEY
+  #       sync: false
+  #     - key: LLM_PROVIDER
+  #       value: production
+  #     - key: PRODUCTION_LLM_API_KEY
+  #       sync: false
+  #     - key: PRODUCTION_LLM_MODEL
+  #       value: gpt-4o-mini
+
+databases:
+  - name: meeting-prep-db
+    databaseName: meeting_prep
+    user: meeting_prep_user
+    plan: starter
+    region: oregon
+    postgresMajorVersion: 16
