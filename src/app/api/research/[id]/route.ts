@@ -35,6 +35,10 @@ export async function POST(
       return NextResponse.json({ success: false, error: 'Invalid meeting id' }, { status: 400 });
     }
 
+    // Parse ?refresh bypass for cache (spec task 4)
+    const url = new URL(request.url);
+    const refresh = url.searchParams.get('refresh') === 'true' || url.searchParams.get('refresh') === '1';
+
     // Concurrency protection: check meeting.status before research
     const meeting = await prisma.meeting.findUnique({
       where: { id },
@@ -66,8 +70,12 @@ export async function POST(
       );
     }
 
+    // Benchmark: meeting creation already done at /api/meetings; log research trigger time
+    console.time('api:research:trigger');
     // Run research pipeline asynchronously (pipeline will set COMPLETED or revert to DRAFT on failure)
-    const result = await runResearchPipeline(id);
+    // Pass refresh to bypass cache (tavily/github/identity/company 24h)
+    const result = await runResearchPipeline(id, undefined, { refresh });
+    console.timeEnd('api:research:trigger');
 
     if (!result.success) {
       return NextResponse.json({ success: false, error: result.error || 'Research failed' }, { status: 500 });

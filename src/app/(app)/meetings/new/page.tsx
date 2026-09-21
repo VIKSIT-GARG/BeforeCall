@@ -36,6 +36,7 @@ interface Attendee {
   company: string
   linkedin: string
   twitter: string
+  github: string
   notes: string
 }
 
@@ -47,6 +48,7 @@ const initialAttendee: Attendee = {
   company: "",
   linkedin: "",
   twitter: "",
+  github: "",
   notes: "",
 }
 
@@ -56,6 +58,7 @@ export default function NewMeetingPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState("")
 
+  const [host, setHost] = useState({ name: "You", email: "" })
   const [meeting, setMeeting] = useState({
     title: "",
     dateTime: new Date(Date.now() + 3600000).toISOString().slice(0, 16),
@@ -119,7 +122,9 @@ export default function NewMeetingPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...meeting,
+          duration: Number(meeting.duration),
           attendees: validAttendees,
+          host: host.name.trim() ? host : undefined,
         }),
       })
 
@@ -215,6 +220,14 @@ export default function NewMeetingPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
+                    <div className="rounded-xl bg-primary/5 border border-primary/20 p-4">
+                      <p className="text-sm font-medium flex items-center gap-2"><span className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs">You</span> Host — You are hosting this meeting</p>
+                      <div className="grid gap-3 sm:grid-cols-2 mt-3">
+                        <div className="space-y-1.5"><Label htmlFor="hostName">Host Name</Label><Input id="hostName" value={host.name} onChange={e=>setHost(p=>({...p, name:e.target.value}))} placeholder="You"/></div>
+                        <div className="space-y-1.5"><Label htmlFor="hostEmail">Host Email</Label><Input id="hostEmail" type="email" value={host.email} onChange={e=>setHost(p=>({...p, email:e.target.value}))} placeholder="you@company.com"/></div>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2">Host is not researched as external attendee. Common ground will be computed against host.</p>
+                    </div>
                     <div className="space-y-2">
                       <Label htmlFor="title">Meeting Title *</Label>
                       <Input

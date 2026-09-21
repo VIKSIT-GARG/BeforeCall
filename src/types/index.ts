@@ -8,6 +8,7 @@ export interface MeetingInput {
   meetingUrl?: string;
   attendees: AttendeeInput[];
   additionalContext?: string;
+  host?: { name: string; email?: string };
 }
 
 export interface AttendeeInput {
@@ -18,6 +19,8 @@ export interface AttendeeInput {
   linkedin?: string;
   twitter?: string;
   notes?: string;
+  github?: string;
+  githubUsername?: string;
 }
 
 export interface AttendeeProfile {
@@ -71,6 +74,29 @@ export interface Source {
   date?: string;
 }
 
+export interface Evidence {
+  fact: string;
+  sourceUrl: string;
+  sourceType: string;
+  confidence: 'high' | 'medium' | 'low';
+  date?: string;
+}
+
+export interface ResolvedIdentity {
+  name: string;
+  role?: string;
+  company?: string;
+  linkedinUrl?: string;
+  githubUsername?: string;
+  githubSnapshot?: any;
+  confidence: 'HIGH'|'MEDIUM'|'LOW'|'UNRESOLVED';
+  evidence: Evidence[];
+  summary?: string;
+  location?: string;
+  needsMoreInfo?: boolean;
+  lastResearched?: string;
+}
+
 export interface MeetingBrief {
   id: string;
   meetingId: string;
@@ -84,6 +110,12 @@ export interface MeetingBrief {
   watchOuts?: string[];
   sources: Source[];
   generatedAt: string;
+  commonGround?: string[];
+  meetingIntelligence?: {
+    host: string;
+    whyAttendeesMatter: Record<string,string>;
+    recentSignals: string[];
+  }
 }
 
 export interface AttendeeSummary {
@@ -94,6 +126,9 @@ export interface AttendeeSummary {
   whyTheyMatter: string;
   confidence: 'verified' | 'inferred' | 'potential';
   sources: Source[];
+  github?: string;
+  evidence?: Evidence[];
+  linkedinVerified?: boolean;
 }
 
 export interface ResearchResult {

@@ -21,6 +21,7 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  console.time('api:meetings:create');
   // Rate limiting: 30/min per IP for meetings
   const rate = checkRateLimit(request, 'meetings');
   if (!rate.allowed) {
@@ -75,7 +76,14 @@ export async function POST(request: NextRequest) {
       linkedin: a.linkedin ? sanitizeString(a.linkedin, 500) : undefined,
       twitter: a.twitter ? sanitizeString(a.twitter, 500) : undefined,
       notes: a.notes ? sanitizeString(a.notes, 500) : undefined,
+      github: (a as { github?: string }).github ? sanitizeString((a as { github?: string }).github!, 500) : undefined,
+      githubUsername: (a as { githubUsername?: string }).githubUsername
+        ? sanitizeString((a as { githubUsername?: string }).githubUsername!, 100).toLowerCase()
+        : undefined,
     }));
+
+    const hostName = (data as any).host?.name ? sanitizeString((data as any).host.name, 100) : undefined
+    const hostEmail = (data as any).host?.email ? sanitizeString((data as any).host.email, 254) : undefined
 
     // If meetingUrl was provided but sanitization nulled it (e.g., javascript:), reject
     if (data.meetingUrl && !meetingUrl) {
@@ -94,6 +102,8 @@ export async function POST(request: NextRequest) {
         duration: data.duration,
         location,
         meetingUrl,
+        hostName,
+        hostEmail,
         status: 'DRAFT',
         attendees: {
           create: sanitizedAttendees.map((a) => ({
@@ -104,12 +114,14 @@ export async function POST(request: NextRequest) {
             linkedin: a.linkedin,
             twitter: a.twitter,
             notes: a.notes,
+            github: (a as unknown as { github?: string }).github,
+            githubUsername: (a as unknown as { githubUsername?: string }).githubUsername,
           })),
         },
       },
       include: { attendees: true },
     });
-
+    try { console.timeEnd('api:meetings:create'); } catch {}
     return NextResponse.json({ success: true, data: meeting });
   } catch (error) {
     // Never leak stack traces or secrets; log generic message without PII

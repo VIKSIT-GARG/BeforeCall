@@ -13,6 +13,7 @@
  * No secrets, no real individuals.
  */
 import type { ResearchResult } from '@/types';
+import { normalizeAttendeeInput, identityHash } from '@/lib/identity';
 
 export type MockResearchMode = 'success' | 'empty' | 'rate_limit' | 'timeout' | 'partial' | 'malformed';
 
@@ -23,7 +24,18 @@ export interface MockResearchProviderOptions {
 }
 
 function cannedResults(query: string, count = 3): ResearchResult[] {
-  const base = query.slice(0, 40).replace(/\s+/g, '_');
+  // Use identityHash for stable yet distinct mock URLs when query contains a name (identity-aware mocks)
+  let hashSuffix = '';
+  try {
+    const maybeName = query.split(' ').slice(0, 2).join(' ');
+    if (maybeName.trim().split(' ').length >= 2) {
+      const norm = normalizeAttendeeInput({ name: maybeName });
+      if (norm.name) hashSuffix = `-${identityHash(norm).slice(0, 6)}`;
+    }
+  } catch {
+    // ignore identity errors in mock
+  }
+  const base = query.slice(0, 40).replace(/\s+/g, '_') + hashSuffix;
   const sources: Array<{ domain: string; credibility: ResearchResult['credibility'] }> = [
     { domain: 'linkedin.com', credibility: 'high' },
     { domain: 'example.com', credibility: 'high' },
@@ -126,10 +138,16 @@ export class MockResearchProvider {
   }
 
   async searchPerson(name: string, company?: string): Promise<ResearchResult[]> {
+    // Identity-aware: normalize inputs for deterministic mock generation (namesake protection simulation)
+    const norm = normalizeAttendeeInput({ name, company });
+    const effectiveName = norm.name || name;
+    const effectiveCompany = norm.company ?? company;
+    // If only name and no company/role, simulate UNRESOLVED by returning empty unless mock is in success with extra evidence
+    // For mock determinism, still return canned but mark low relevance when namesake risk
     const queries = [
-      `${name} ${company ?? ''} professional profile`.trim(),
-      `${name} ${company ?? ''} linkedin`.trim(),
-      `${name} recent work interview article`,
+      `${effectiveName} ${effectiveCompany ?? ''} professional profile`.trim(),
+      `${effectiveName} ${effectiveCompany ?? ''} linkedin`.trim(),
+      `${effectiveName} recent work interview article`,
     ];
     const all: ResearchResult[] = [];
     for (const q of queries) {
@@ -337,6 +355,36 @@ export class ScenarioMockLLMProvider implements LLMProvider {
     }
     return this.base.generateText(prompt, options);
   }
+}
+
+/**
+ * Identity-aware mock resolver for tests — uses normalizeAttendeeInput + identityHash
+ * to fabricate deterministic ResolvedIdentity without hitting GitHub/Tavily.
+ */
+export function mockResolveIdentity(raw: { name: string; company?: string; role?: string; github?: string; linkedin?: string; email?: string }) {
+  const norm = normalizeAttendeeInput(raw);
+  const hash = identityHash(norm);
+  const hasCompany = !!norm.company;
+  const hasGithub = !!norm.githubUsername;
+  const hasLinkedin = !!norm.linkedinUrl;
+  let confidence: 'HIGH' | 'MEDIUM' | 'LOW' | 'UNRESOLVED' = 'UNRESOLVED';
+  if (hasGithub && hasCompany) confidence = 'HIGH';
+  else if (hasCompany || hasLinkedin || hasGithub) confidence = norm.name && hasCompany ? 'MEDIUM' : 'LOW';
+  if (!norm.name) confidence = 'UNRESOLVED';
+  // Namesake protection: name only -> UNRESOLVED
+  if (!hasCompany && !hasGithub && !hasLinkedin && !raw.role && !raw.email) confidence = 'UNRESOLVED';
+  return {
+    name: norm.name,
+    role: norm.role,
+    company: norm.company,
+    linkedinUrl: norm.linkedinUrl,
+    githubUsername: norm.githubUsername,
+    confidence,
+    identityHash: hash,
+    evidence: [
+      { fact: `Mock identity for ${norm.name}`, sourceUrl: 'mock://identity', sourceType: 'web' as const, confidence, date: new Date().toISOString() },
+    ],
+  };
 }
 
 export default MockResearchProvider;

@@ -4,6 +4,8 @@ export const RATE_LIMITS = {
   research: { limit: 10, windowMs: 60_000 },
   meetings: { limit: 30, windowMs: 60_000 },
   export: { limit: 5, windowMs: 60_000 },
+  search: { limit: 30, windowMs: 60_000 },
+  notifications: { limit: 60, windowMs: 60_000 },
 } as const;
 
 export type RateLimiterKey = keyof typeof RATE_LIMITS;

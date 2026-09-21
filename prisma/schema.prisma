@@ -13,17 +13,26 @@ model Meeting {
   description String?
   agenda      String?
   dateTime    DateTime
-  duration    Int?     // in minutes
+  duration    Int?
   location    String?
   meetingUrl  String?
   status      String   @default("DRAFT")
+  // Host (meeting owner) — not researched as external attendee unless requested
+  hostName    String?  // "You" by default
+  hostEmail   String?
+  hostId      String?  // future auth id
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
   attendees   Attendee[]
   research    Research[]
   brief       Brief?
   companyResearch CompanyResearch[]
+  notifications Notification[]
+
+  @@index([dateTime])
+  @@index([title])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model Attendee {
@@ -37,10 +46,20 @@ model Attendee {
   linkedin  String?
   twitter   String?
   notes     String?
+  // Intelligence platform fields
+  github         String? // raw input github username/url
+  githubUsername String? // normalized github handle
+  confidence     String? @default("UNRESOLVED") // HIGH|MEDIUM|LOW|UNRESOLVED
+  evidence       String? // JSON string: array of {fact, sourceUrl, sourceType, confidence, date}
+  githubSnapshot String? // JSON string: GithubSnapshot
+  lastResearched DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
   profile   AttendeeProfile?
+
+  @@index([name])
+  @@index([company])
+  @@index([meetingId])
 }
 
 model AttendeeProfile {
@@ -49,13 +68,13 @@ model AttendeeProfile {
   attendee      Attendee @relation(fields: [attendeeId], references: [id], onDelete: Cascade)
   currentRole   String?
   currentCompany String?
-  previousRoles String?    // JSON string
-  expertise     String   @default("[]") // JSON string
-  notableProjects String?  // JSON string
-  interests     String   @default("[]") // JSON string
+  previousRoles String?
+  expertise     String   @default("[]")
+  notableProjects String?
+  interests     String   @default("[]")
   bio           String?
   avatarUrl     String?
-  sources       String?    // JSON string
+  sources       String?
   lastUpdated   DateTime @default(now())
 }
 
@@ -74,7 +93,6 @@ model Company {
   logoUrl     String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
   research    CompanyResearch[]
 }
 
@@ -85,14 +103,13 @@ model CompanyResearch {
   meetingId String
   meeting   Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
   summary   String
-  recentNews String?   // JSON string
-  products  String?    // JSON string
-  keyPeople String?    // JSON string
+  recentNews String?
+  products  String?
+  keyPeople String?
   insights  String?
-  sources   String?    // JSON string
+  sources   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
   @@unique([companyId, meetingId])
 }
 
@@ -100,10 +117,10 @@ model Research {
   id        String   @id @default(cuid())
   meetingId String
   meeting   Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
-  type      String   // ATTENDEE, COMPANY, TOPIC, GENERAL
+  type      String
   query     String
-  results   String   // JSON string
-  status    String   @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED, FAILED
+  results   String
+  status    String   @default("PENDING")
   error     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -113,26 +130,49 @@ model Brief {
   id              String   @id @default(cuid())
   meetingId       String   @unique
   meeting         Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
-  tldr            String   // JSON string
-  attendeeSummaries String   // JSON string
-  companyContext  String?    // JSON string
-  topicBriefs     String?    // JSON string
-  talkingPoints   String     // JSON string
-  conversationStarters String // JSON string
-  questions       String     // JSON string
-  watchOuts       String?    // JSON string
-  sources         String     // JSON string
+  tldr            String
+  attendeeSummaries String
+  companyContext  String?
+  topicBriefs     String?
+  talkingPoints   String
+  conversationStarters String
+  questions       String
+  watchOuts       String?
+  sources         String
   generatedAt     DateTime @default(now())
   version         Int      @default(1)
 }
 
 model UserSettings {
   id            String   @id @default(cuid())
-  userId        String   @unique // for future auth
+  userId        String   @unique
   ollamaModel   String   @default("qwen2.5-coder:7b")
   tavilyApiKey  String?
   defaultDuration Int    @default(60)
   timezone      String   @default("UTC")
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  meetingId String?
+  meeting   Meeting? @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  type      String   // research_complete | meeting_reminder | research_failed | brief_updated | needs_confirmation
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([read])
+  @@index([meetingId])
+}
+
+model CacheEntry {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String   // JSON string
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 }

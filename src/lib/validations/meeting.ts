@@ -76,7 +76,11 @@ export const attendeeInputSchema = z.object({
   linkedin: optionalSocialString,
   twitter: optionalSocialString,
   notes: optionalLimitedString(500),
+  github: optionalLimitedString(500),
+  githubUsername: optionalLimitedString(100),
 });
+
+const hostSchema = z.object({ name: z.string().trim().min(1).max(100), email: optionalEmail }).strict().optional()
 
 export const meetingCreateSchema = z.object({
   title: z.string().trim().min(1, 'Title is required').max(200, 'Title must be 1-200 characters'),
@@ -92,6 +96,7 @@ export const meetingCreateSchema = z.object({
   meetingUrl: optionalUrl,
   attendees: z.array(attendeeInputSchema).min(1, 'At least one attendee is required').max(10, 'At most 10 attendees allowed'),
   additionalContext: optionalLimitedString(5000),
+  host: hostSchema,
 });
 
 export const meetingUpdateSchema = z
@@ -110,6 +115,7 @@ export const meetingUpdateSchema = z
     meetingUrl: optionalUrl,
     status: z.enum(['DRAFT', 'RESEARCHING', 'COMPLETED', 'ARCHIVED']).optional(),
     additionalContext: optionalLimitedString(5000),
+    host: hostSchema,
   })
   .strict();
 
