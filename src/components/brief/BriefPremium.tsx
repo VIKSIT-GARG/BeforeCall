@@ -79,7 +79,7 @@ export function BriefPremium({ brief, meeting }: { brief:any; meeting:any }) {
 
       {/* Header */}
       <Card className="overflow-hidden border-primary/20">
-        <div className="h-1 bg-gradient-to-r from-primary via-primary/60 to-purple-500"/>
+        <div className="h-1 bg-gradient-to-r from-primary via-primary to-amber-600"/>
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
             <div>

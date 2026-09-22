@@ -44,8 +44,8 @@ const features = [
     icon: Building2,
     title: "Company Research",
     description: "Company overview, recent news, products, leadership, and strategic insights — all in one place.",
-    color: "text-purple-600 dark:text-purple-400",
-    bgColor: "bg-purple-50 dark:bg-purple-900/20",
+    color: "text-amber-700 dark:text-amber-400",
+    bgColor: "bg-amber-50 dark:bg-amber-900/20",
   },
   {
     icon: FileText,
@@ -130,19 +130,19 @@ export default function LandingPage() {
         <section className="relative overflow-hidden py-20 lg:py-32" aria-labelledby="hero-heading">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="text-center max-w-4xl mx-auto">
-              <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary mb-6 animate-fade-in">
+              <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary mb-6 reveal">
                 <Sparkles className="h-4 w-4" aria-hidden="true" />
                 <span>New: 5-Minute Brief & Before You Walk In modes</span>
               </div>
-              <h1 id="hero-heading" className="font-display text-display-md lg:text-display-lg font-bold tracking-tight text-foreground mb-6 animate-slide-in-from-bottom">
+              <h1 id="hero-heading" className="font-display text-display-md lg:text-display-lg font-bold tracking-tight text-foreground mb-6 reveal-2">
                 Walk into every meeting <span className="gradient-text">prepared</span>
               </h1>
-              <p className="text-body-lg text-muted-foreground max-w-2xl mx-auto mb-10 animate-slide-in-from-bottom delay-100">
+              <p className="text-body-lg text-muted-foreground max-w-2xl mx-auto mb-10 reveal-3">
                 Research the people. Understand the context. Know what to ask.
                 <br />
                 AI-powered meeting intelligence that gives you the edge.
               </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-slide-in-from-bottom delay-200">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 reveal-4">
                 <Link href="/meetings/new">
                   <Button size="lg" className="w-full sm:w-auto gap-2 px-8 py-3 text-base">
                     <Sparkles className="h-4 w-4" aria-hidden="true" />
@@ -162,8 +162,8 @@ export default function LandingPage() {
             </div>
 
             {/* Hero Visual - Meeting Brief Preview */}
-            <div className="mt-16 relative animate-scale-in delay-200">
-              <div className="absolute -inset-4 bg-gradient-to-r from-primary/10 via-transparent to-purple/10 rounded-3xl blur-3xl" aria-hidden="true" />
+            <div className="mt-16 relative reveal-4">
+              <div className="absolute -inset-4 bg-gradient-to-r from-primary/10 via-transparent to-amber-500/10 rounded-3xl blur-3xl" aria-hidden="true" />
               <BriefPreview />
             </div>
           </div>
@@ -321,7 +321,7 @@ export default function LandingPage() {
 
         {/* CTA Section */}
         <section className="py-24 lg:py-32 relative overflow-hidden" aria-labelledby="cta-heading">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-purple/10" aria-hidden="true" />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-amber-500/10" aria-hidden="true" />
           <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 relative text-center">
             <h2 id="cta-heading" className="font-display text-display-sm lg:text-display-md font-bold tracking-tight text-foreground mb-6">
               Never walk into an important meeting unprepared again

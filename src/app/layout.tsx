@@ -1,22 +1,24 @@
 import type { Metadata, Viewport } from "next"
-import { Inter, Space_Grotesk, JetBrains_Mono } from "next/font/google"
+import { Instrument_Sans, Fraunces, IBM_Plex_Mono } from "next/font/google"
 import "./globals.css"
 import { TooltipProvider } from "@/components/ui/tooltip"
 
-const inter = Inter({ 
+const instrumentSans = Instrument_Sans({ 
   subsets: ["latin"], 
   variable: "--font-inter",
   display: "swap",
 })
 
-const spaceGrotesk = Space_Grotesk({ 
+const fraunces = Fraunces({ 
   subsets: ["latin"], 
   variable: "--font-display",
   display: "swap",
+  axes: ["SOFT","WONK","opsz"],
 })
 
-const jetbrainsMono = JetBrains_Mono({ 
+const ibmPlexMono = IBM_Plex_Mono({ 
   subsets: ["latin"], 
+  weight: ["400","500"],
   variable: "--font-mono",
   display: "swap",
 })
@@ -52,8 +54,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "white" },
-    { media: "(prefers-color-scheme: dark)", color: "#0c1222" },
+    { media: "(prefers-color-scheme: light)", color: "#fdf8f0" },
+    { media: "(prefers-color-scheme: dark)", color: "#11110f" },
   ],
   width: "device-width",
   initialScale: 1,
@@ -66,7 +68,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${instrumentSans.variable} ${fraunces.variable} ${ibmPlexMono.variable}`} suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
