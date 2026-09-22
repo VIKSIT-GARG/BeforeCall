@@ -13,6 +13,7 @@ import {
   enforceTotalContextLimit,
 } from '@/lib/tavily-guardrails';
 import { createNotification } from '@/lib/notifications';
+import type { StreamEvent } from '@/lib/stream';
 import { cache, getTtlFor } from '@/lib/cache';
 import { createLimiter } from '@/lib/semaphore';
 import { Benchmark } from '@/lib/benchmark';
@@ -158,9 +159,11 @@ function budgetRemaining(): number {
 export async function runResearchPipeline(
   meetingId: string,
   onProgress?: (progress: ResearchProgress) => void,
-  opts?: { refresh?: boolean }
+  opts?: { refresh?: boolean; onEvent?: (e: StreamEvent) => void }
 ): Promise<{ success: boolean; error?: string }> {
   const refresh = !!opts?.refresh;
+  const onEvent = opts?.onEvent;
+  const emit = (e: StreamEvent) => { try { onEvent?.(e); } catch {} };
   const bench = new Benchmark();
   bench.start('pipeline:total');
   console.time('pipeline:total');
@@ -189,6 +192,8 @@ export async function runResearchPipeline(
       throw new Error('Meeting not found');
     }
     meetingTitle = meeting.title;
+    emit({ type: 'stage', stage: '01_MEETING_PARSED', status: 'done', message: `Meeting parsed: ${meeting.title}` });
+    emit({ type: 'meeting', data: { id: meeting.id, title: meeting.title, dateTime: meeting.dateTime, hostName: meeting.hostName, attendees: meeting.attendees } });
 
     // Smart planner: filter host, dedupe attendees, dedupe companies, use provided fields
     const allAttendeesRaw = meeting.attendees.map(a => ({
@@ -215,6 +220,13 @@ export async function runResearchPipeline(
     if (dedupedAttendees.length < attendeesFiltered.length) {
       console.info(`[planner] deduped attendees: ${attendeesFiltered.length} → ${dedupedAttendees.length}`);
     }
+
+    emit({ type: 'stage', stage: '02_ATTENDEES_RESOLVED', status: 'running', message: `${dedupedAttendees.length} attendees resolved` });
+    // Emit each attendee identity immediately (fast first result)
+    for (const a of dedupedAttendees) {
+      emit({ type: 'attendee', attendeeId: (a as any)._id || a.name, status: 'resolving', data: { name: a.name, role: a.role, company: a.company, github: (a as any).github } });
+    }
+    emit({ type: 'stage', stage: '02_ATTENDEES_RESOLVED', status: 'done' });
 
     const meetingInput: MeetingInput = {
       title: meeting.title,
@@ -321,6 +333,9 @@ export async function runResearchPipeline(
             const profile = await cachedSynthesizeAttendeeProfile(attendee.name, attendee.company, boundedResults, refresh);
             
             if (profile) {
+              const aId = attendeeRecordsByName.get(attendee.name)?.id || attendee.name;
+              emit({ type: 'attendee', attendeeId: aId, status: profile ? 'ready' : 'error', data: { name: attendee.name, profile } });
+              if (profile.sources?.length) emit({ type: 'evidence', attendeeId: aId, data: profile.sources.slice(0,3) });
               attendeeProfiles.set(attendee.name, profile);
               allSources.push(...profile.sources);
               attendeeSuccess++;
@@ -357,6 +372,8 @@ export async function runResearchPipeline(
                 bench.end(`db:upsertAttendee:${attendee.name.slice(0, 20)}`);
               }
             } else {
+              const aId2 = attendeeRecordsByName.get(attendee.name)?.id || attendee.name;
+              emit({ type: 'attendee', attendeeId: aId2, status: 'error', message: 'No profile' });
               // Synthesize returned null — treat as partial failure (no data), not fatal
               attendeeFailed++;
               console.warn(`No profile synthesized for ${attendee.name} (empty or LLM failure)`);
@@ -421,6 +438,7 @@ export async function runResearchPipeline(
               const research = await cachedSynthesizeCompanyResearch(company, bounded, refresh);
               
               if (research) {
+                emit({ type: 'evidence', company: company, data: research.sources?.slice(0,2) });
                 companyResearch.push(research);
                 allSources.push(...research.sources);
                 companySuccess++;
@@ -511,6 +529,7 @@ export async function runResearchPipeline(
     bench.end('tavily+llm:companies+topics');
     try { console.timeEnd('tavily+llm:companies+topics'); } catch {}
 
+    emit({ type: 'stage', stage: '06_BRIEF_GENERATING', status: 'running', message: 'Synthesizing brief' });
     onProgress?.({ stage: 'synthesizing', message: 'Generating meeting brief...', progress: 85 });
 
     bench.start('llm:brief');
@@ -529,7 +548,13 @@ export async function runResearchPipeline(
     try { console.timeEnd('llm:brief'); } catch {}
 
     if (brief) {
-      bench.start('db:brief');
+      if (brief) {
+      emit({ type: 'brief_section', section: 'tldr', data: brief.tldr });
+      emit({ type: 'brief_section', section: 'attendees', data: brief.attendeeSummaries });
+      emit({ type: 'brief_section', section: 'brief', data: brief });
+      emit({ type: 'brief', data: brief });
+    }
+    bench.start('db:brief');
       console.time('db:brief');
       await prisma.brief.upsert({
         where: { meetingId },
@@ -578,6 +603,8 @@ export async function runResearchPipeline(
       if (uniqueCompanies.length > 0) completeMsg += `, ${companySuccess}/${uniqueCompanies.length} companies`;
       if (attendeeFailed > 0 || companyFailed > 0) completeMsg += ' — partial results, some queries failed';
     }
+    emit({ type: 'stage', stage: '07_COMPLETE', status: 'done', message: completeMsg });
+    emit({ type: 'complete', data: { message: completeMsg } });
     onProgress?.({ stage: 'complete', message: completeMsg, progress: 100 });
 
     bench.start('notifications');
@@ -606,6 +633,8 @@ export async function runResearchPipeline(
       data: { status: 'DRAFT' },
     }).catch(() => {});
 
+    emit({ type: 'stage', stage: 'error', status: 'error', message: error instanceof Error ? error.message : 'Research failed' });
+    emit({ type: 'error', message: error instanceof Error ? error.message : 'Research failed' });
     onProgress?.({ 
       stage: 'error', 
       message: error instanceof Error ? error.message : 'Research failed', 
