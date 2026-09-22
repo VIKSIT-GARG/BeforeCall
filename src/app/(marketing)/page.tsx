@@ -1,656 +1,311 @@
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import {
-  Brain,
-  Users,
-  Building2,
-  FileText,
-  MessageSquare,
-  Lightbulb,
-  ArrowRight,
-  CheckCircle,
-  Shield,
-  Clock,
-  Search,
-  Sparkles,
-  ExternalLink,
-  ChevronRight,
-  Layers,
-  Target,
-  Zap,
-  Star,
-  Quote,
-  BarChart2,
-  Compass,
-  Lock,
-  Calendar,
-  Monitor,
-} from "lucide-react"
-import { cn } from "@/lib/utils"
+import { EditorialHeader, MetadataBar, SectionHeader, EditorialCallout, PullQuote, FieldNote, RegistrationMark, TechnicalLabel, DiagramBox } from "@/components/editorial"
 
-const features = [
-  {
-    icon: Users,
-    title: "Attendee Intelligence",
-    description: "Deep profiles on every participant — role, background, recent work, and why they matter for your meeting.",
-    color: "text-blue-600 dark:text-blue-400",
-    bgColor: "bg-blue-50 dark:bg-blue-900/20",
-  },
-  {
-    icon: Building2,
-    title: "Company Research",
-    description: "Company overview, recent news, products, leadership, and strategic insights — all in one place.",
-    color: "text-amber-700 dark:text-amber-400",
-    bgColor: "bg-amber-50 dark:bg-amber-900/20",
-  },
-  {
-    icon: FileText,
-    title: "Topic Intelligence",
-    description: "Context, recent developments, and discussion angles for every agenda item.",
-    color: "text-green-600 dark:text-green-400",
-    bgColor: "bg-green-50 dark:bg-green-900/20",
-  },
-  {
-    icon: MessageSquare,
-    title: "Conversation Starters",
-    description: "5-10 natural, contextual openers that reference real research — not generic small talk.",
-    color: "text-orange-600 dark:text-orange-400",
-    bgColor: "bg-orange-50 dark:bg-orange-900/20",
-  },
-  {
-    icon: Lightbulb,
-    title: "Talking Points & Questions",
-    description: "Prioritized talking points, strategic questions, and follow-up angles organized by category.",
-    color: "text-indigo-600 dark:text-indigo-400",
-    bgColor: "bg-indigo-50 dark:bg-indigo-900/20",
-  },
-  {
-    icon: Shield,
-    title: "Source-Backed Research",
-    description: "Every claim cites its source with credibility ratings. Facts separated from inferences.",
-    color: "text-red-600 dark:text-red-400",
-    bgColor: "bg-red-50 dark:bg-red-900/20",
-  },
-]
-
-const workflowSteps = [
-  { step: "01", title: "Add Meeting", description: "Enter title, time, attendees, and agenda. Takes 60 seconds." },
-  { step: "02", title: "Research Runs", description: "We research people, companies, and topics in parallel." },
-  { step: "03", title: "Get Your Brief", description: "AI synthesizes a scannable brief with sources and talking points." },
-  { step: "04", title: "Walk In Prepared", description: "Review the 5-minute brief or full brief before the meeting." },
-]
-
-const trustPoints = [
-  { icon: CheckCircle, text: "Every claim linked to a verifiable source" },
-  { icon: CheckCircle, text: "Facts, inferences, and suggestions clearly labeled" },
-  { icon: CheckCircle, text: "Web content treated as evidence, never instructions" },
-  { icon: CheckCircle, text: "Local LLM option — your data never leaves your machine" },
-  { icon: CheckCircle, text: "No hallucinated employment history or quotes" },
-  { icon: CheckCircle, text: "Graceful degradation when external services fail" },
-]
-
-export default function LandingPage() {
+export default function EditorialLanding() {
   return (
-    <div className="min-h-screen bg-background">
-      {/* Navigation */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
-        <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8" aria-label="Main navigation">
-          <div className="flex h-16 items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                <Brain className="h-5 w-5 text-primary-foreground" />
-              </div>
-              <span className="font-display font-semibold text-lg">Meeting Prep</span>
-            </div>
-            <div className="hidden md:flex md:items-center md:gap-6">
-              <Link href="#features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Features</Link>
-              <Link href="#how-it-works" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">How it works</Link>
-              <Link href="#trust" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Trust</Link>
-              <Link href="#preview" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Preview</Link>
-            </div>
-            <div className="flex items-center gap-3">
-              <Link href="/dashboard" className="hidden sm:block rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
-                Dashboard
-              </Link>
-              <Link href="/meetings/new" className="rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-all shadow-sm hover:shadow-md">
-                <Sparkles className="mr-2 h-4 w-4" aria-hidden="true" />
-                Prepare a Meeting
-              </Link>
-            </div>
-          </div>
-        </nav>
-      </header>
+    <div className="min-h-screen bg-background text-foreground">
+      <EditorialHeader brand="MEETING INTELLIGENCE — ISSUE 015" />
+      <MetadataBar no="NO. 015" date="FRIDAY / MAY 22, 2026" read="APPROX. 6 MIN READ — REV. 01" />
 
-      <main className="pt-16">
-        {/* Hero Section */}
-        <section className="relative overflow-hidden py-20 lg:py-32" aria-labelledby="hero-heading">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="text-center max-w-4xl mx-auto">
-              <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary mb-6 reveal">
-                <Sparkles className="h-4 w-4" aria-hidden="true" />
-                <span>New: 5-Minute Brief & Before You Walk In modes</span>
-              </div>
-              <h1 id="hero-heading" className="font-display text-display-md lg:text-display-lg font-bold tracking-tight text-foreground mb-6 reveal-2">
-                Walk into every meeting <span className="gradient-text">prepared</span>
-              </h1>
-              <p className="text-body-lg text-muted-foreground max-w-2xl mx-auto mb-10 reveal-3">
-                Research the people. Understand the context. Know what to ask.
-                <br />
-                AI-powered meeting intelligence that gives you the edge.
-              </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 reveal-4">
-                <Link href="/meetings/new">
-                  <Button size="lg" className="w-full sm:w-auto gap-2 px-8 py-3 text-base">
-                    <Sparkles className="h-4 w-4" aria-hidden="true" />
-                    Prepare a Meeting
-                  </Button>
-                </Link>
-                <Link href="#how-it-works" className="w-full sm:w-auto">
-                  <Button variant="outline" size="lg" className="w-full sm:w-auto gap-2 px-8 py-3 text-base">
-                    See how it works
-                    <ChevronRight className="h-4 w-4" aria-hidden="true" />
-                  </Button>
-                </Link>
-              </div>
-              <p className="mt-6 text-sm text-muted-foreground animate-fade-in delay-300">
-                No credit card required · Local LLM option · 30-second setup
-              </p>
-            </div>
-
-            {/* Hero Visual - Meeting Brief Preview */}
-            <div className="mt-16 relative reveal-4">
-              <div className="absolute -inset-4 bg-gradient-to-r from-primary/10 via-transparent to-amber-500/10 rounded-3xl blur-3xl" aria-hidden="true" />
-              <BriefPreview />
-            </div>
-          </div>
-        </section>
-
-        {/* Trust Bar */}
-        <section className="py-12 border-y border-border" aria-label="Trust indicators">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-              {trustPoints.map((point, i) => (
-                <div key={i} className="flex items-start gap-3 text-sm">
-                  <div className="flex-shrink-0 mt-0.5 text-success">
-                    <point.icon className="h-5 w-5" aria-hidden="true" />
-                  </div>
-                  <p className="text-muted-foreground">{point.text}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Features Section */}
-        <section id="features" className="py-24 lg:py-32" aria-labelledby="features-heading">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="text-center max-w-2xl mx-auto mb-16">
-              <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary mb-4">
-                <Zap className="h-3 w-3" aria-hidden="true" />
-                Features
+      {/* HERO — massive condensed, asymmetric editorial */}
+      <section className="editorial-container pt-10 pb-12 sm:pt-16 sm:pb-16">
+        <div className="grid lg:grid-cols-[1.15fr_0.85fr] gap-10 lg:gap-8 items-start">
+          <div className="relative">
+            <p className="font-mono text-[11px] tracking-[0.18em] uppercase text-muted-foreground">FIELD NOTE — 2026.05 / SYSTEM 03</p>
+            <h1 className="font-display font-black uppercase leading-[0.85] tracking-[-0.04em] text-[44px] sm:text-[64px] lg:text-[88px] mt-3">
+              <span className="block">THE</span>
+              <span className="block">ROOM</span>
+              <span className="block">NEEDS</span>
+              <span className="block relative">
+                CONTEXT.
+                <span className="absolute -right-6 -top-2 hidden sm:block"><RegistrationMark /></span>
               </span>
-              <h2 id="features-heading" className="font-display text-display-sm font-bold tracking-tight text-foreground mb-4">
-                Everything you need to own the room
-              </h2>
-              <p className="text-body-lg text-muted-foreground">
-                Six pillars of meeting intelligence, designed to work together seamlessly.
-              </p>
+            </h1>
+            <div className="mt-6 flex items-center gap-3">
+              <span className="h-px w-12 bg-foreground hidden sm:block" aria-hidden="true" />
+              <p className="font-mono text-[11px] tracking-[0.14em] uppercase">ISSUE 015 — MEETING INTELLIGENCE PLATFORM — 2026</p>
             </div>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {features.map((feature, i) => (
-                <FeatureCard key={i} feature={feature} index={i} />
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* How It Works */}
-        <section id="how-it-works" className="py-24 lg:py-32 bg-muted/30" aria-labelledby="workflow-heading">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="text-center max-w-2xl mx-auto mb-16">
-              <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary mb-4">
-                <Layers className="h-3 w-3" aria-hidden="true" />
-                Workflow
-              </span>
-              <h2 id="workflow-heading" className="font-display text-display-sm font-bold tracking-tight text-foreground mb-4">
-                From meeting to brief in minutes
-              </h2>
-              <p className="text-body-lg text-muted-foreground">
-                Four steps. Zero complexity. Maximum preparation.
-              </p>
-            </div>
-            <div className="relative">
-              <div className="hidden lg:block absolute left-1/2 top-0 bottom-0 w-px bg-border -translate-x-1/2" aria-hidden="true" />
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
-                {workflowSteps.map((step, i) => (
-                  <WorkflowStep key={i} step={step} index={i} total={workflowSteps.length} />
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Product Preview */}
-        <section id="preview" className="py-24 lg:py-32" aria-labelledby="preview-heading">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="text-center max-w-2xl mx-auto mb-16">
-              <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary mb-4">
-                <Monitor className="h-3 w-3" aria-hidden="true" />
-                Product Preview
-              </span>
-              <h2 id="preview-heading" className="font-display text-display-sm font-bold tracking-tight text-foreground mb-4">
-                See the brief in action
-              </h2>
-              <p className="text-body-lg text-muted-foreground">
-                A realistic example of what your meeting brief looks like.
-              </p>
-            </div>
-            <ProductPreview />
-          </div>
-        </section>
-
-        {/* Trust Section */}
-        <section id="trust" className="py-24 lg:py-32 bg-muted/30" aria-labelledby="trust-heading">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="text-center max-w-2xl mx-auto mb-16">
-              <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary mb-4">
-                <Shield className="h-3 w-3" aria-hidden="true" />
-                Trust & Transparency
-              </span>
-              <h2 id="trust-heading" className="font-display text-display-sm font-bold tracking-tight text-foreground mb-4">
-                Research you can rely on
-              </h2>
-              <p className="text-body-lg text-muted-foreground">
-                We built trust into every layer — from source attribution to hallucination prevention.
-              </p>
-            </div>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {trustPoints.map((point, i) => (
-                <TrustCard key={i} point={point} index={i} />
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Modes Section */}
-        <section className="py-24 lg:py-32" aria-labelledby="modes-heading">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="text-center max-w-2xl mx-auto mb-16">
-              <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary mb-4">
-                <Target className="h-3 w-3" aria-hidden="true" />
-                Brief Modes
-              </span>
-              <h2 id="modes-heading" className="font-display text-display-sm font-bold tracking-tight text-foreground mb-4">
-                Three views for every situation
-              </h2>
-              <p className="text-body-lg text-muted-foreground">
-                Choose the right level of detail for the time you have.
-              </p>
-            </div>
-            <div className="grid md:grid-cols-3 gap-6">
-              <ModeCard
-                title="Full Brief"
-                description="Complete meeting intelligence — attendees, companies, topics, talking points, starters, questions, and sources."
-                icon={FileText}
-                features={["TL;DR summary", "Attendee profiles", "Company context", "Topic intelligence", "Talking points", "Conversation starters", "Sources & citations"]}
-                badge="Default"
-              />
-              <ModeCard
-                title="5-Minute Brief"
-                description="Condensed to the essentials — 3 things to know, 3 things to say, 3 things to ask, 1 thing to avoid."
-                icon={Clock}
-                features={["3 key insights", "3 conversation starters", "3 strategic questions", "1 watch-out", "Scannable in 3 minutes", "Mobile optimized"]}
-                badge="Popular"
-                badgeColor="bg-primary/10 text-primary"
-              />
-              <ModeCard
-                title="Before You Walk In"
-                description="Ultra-condensed mobile view — just the essentials you need in the elevator or hallway."
-                icon={Compass}
-                features={["Remember: key facts", "Say: your opener", "Ask: your question", "Avoid: assumption", "One-thumb scrollable", "Offline capable"]}
-                badge="New"
-                badgeColor="bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400"
-              />
-            </div>
-          </div>
-        </section>
-
-        {/* CTA Section */}
-        <section className="py-24 lg:py-32 relative overflow-hidden" aria-labelledby="cta-heading">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-amber-500/10" aria-hidden="true" />
-          <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 relative text-center">
-            <h2 id="cta-heading" className="font-display text-display-sm lg:text-display-md font-bold tracking-tight text-foreground mb-6">
-              Never walk into an important meeting unprepared again
-            </h2>
-            <p className="text-body-lg text-muted-foreground mb-10 max-w-xl mx-auto">
-              Your first brief is free. No credit card. Runs locally or in the cloud.
+            <p className="mt-8 max-w-[52ch] text-[15px] leading-relaxed text-muted-foreground">
+              The interface between an agent and its environment is becoming as important as the model itself. This issue documents a precise, evidence-backed context layer for meetings: <em className="not-italic font-medium text-foreground">who is in the room, what they do, and why it matters</em> — rendered as a technical publication.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link href="/meetings/new">
-                <Button size="lg" className="w-full sm:w-auto gap-2 px-10 py-4 text-lg">
-                  <Sparkles className="h-5 w-5" aria-hidden="true" />
-                  Prepare Your First Meeting
-                </Button>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link href="/meetings/new" className="inline-flex items-center gap-2 bg-foreground text-background px-5 py-3 font-mono text-xs tracking-[0.14em] uppercase border border-foreground hover:bg-background hover:text-foreground transition-colors">
+                Prepare a Meeting — SEC 01
+                <span aria-hidden="true">→</span>
               </Link>
-              <Link href="#features" className="w-full sm:w-auto">
-                <Button variant="outline" size="lg" className="w-full sm:w-auto gap-2 px-10 py-4 text-lg">
-                  Explore Features
-                  <ChevronRight className="h-4 w-4" aria-hidden="true" />
-                </Button>
+              <Link href="/dashboard" className="inline-flex items-center gap-2 bg-background text-foreground px-5 py-3 font-mono text-xs tracking-[0.14em] uppercase border border-foreground hover:bg-foreground hover:text-background transition-colors">
+                Open Archive / Dashboard
               </Link>
             </div>
-            <p className="mt-6 text-sm text-muted-foreground">
-              Works with Ollama (free, local) or your preferred LLM provider.
-            </p>
+            <div className="mt-10 grid grid-cols-3 gap-4 border-t border-foreground pt-4 font-mono text-[10px] tracking-[0.12em] uppercase">
+              <div><p className="text-muted-foreground">COORD</p><p className="font-bold">40.7129 N / 74.0060 W</p></div>
+              <div><p className="text-muted-foreground">REV</p><p className="font-bold">02 — 2026.05.22</p></div>
+              <div><p className="text-muted-foreground">SYSTEM</p><p className="font-bold">MI-015 / INK + PAPER</p></div>
+            </div>
           </div>
-        </section>
-      </main>
 
-      {/* Footer */}
-      <footer className="border-t border-border bg-muted/30 py-12 lg:py-16" role="contentinfo">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 lg:gap-12">
-            <div className="md:col-span-2">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                  <Brain className="h-5 w-5 text-primary-foreground" />
+          {/* Technical diagram — meeting intelligence system */}
+          <div className="lg:pl-6">
+            <div className="border border-foreground bg-card p-4 sm:p-5">
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-[10px] tracking-[0.14em] uppercase">FIG. 01 — SYSTEM DIAGRAM</span>
+                <span className="font-mono text-[10px] tracking-[0.14em]">03 / 07</span>
+              </div>
+              <div className="hairline-muted my-3" aria-hidden="true" />
+              {/* Thin-line system: Host → Attendees → Context → Brief */}
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <DiagramBox label="HOST" sub="You · owner" />
+                <div className="flex items-center justify-center"><span className="h-px w-full bg-foreground relative"><span className="absolute right-0 -top-1 h-2 w-2 border-r border-t border-foreground rotate-45" /></span></div>
+                <DiagramBox label="ATTENDEES" sub="3 — 10" />
+              </div>
+              <div className="flex justify-center my-2"><span className="h-6 w-px bg-foreground relative"><span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-2 w-2 border-r border-b border-foreground rotate-45 translate-y-1" /></span></div>
+              <div className="grid grid-cols-3 gap-2">
+                <DiagramBox label="PERSON CONTEXT" sub="GitHub · LinkedIn · Web" />
+                <DiagramBox label="COMPANY" sub="domain · size" />
+                <DiagramBox label="TOPICS" sub="agenda → research" />
+              </div>
+              <div className="flex justify-center my-2"><span className="h-6 w-px bg-foreground relative"><span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-2 w-2 border-r border-b border-foreground rotate-45 translate-y-1" /></span></div>
+              <div className="border border-foreground bg-[hsl(var(--accent-yellow))] p-3 text-center">
+                <p className="font-mono text-[10px] tracking-[0.14em] font-bold">MEETING INTELLIGENCE → BRIEF</p>
+                <p className="font-mono text-[9px] tracking-[0.1em] mt-1">TL;DR · ATTENDEES · COMPANY · TOPICS · STARTERS · SOURCES</p>
+              </div>
+              <div className="mt-3 flex items-center justify-between font-mono text-[9px] tracking-[0.12em] uppercase text-muted-foreground">
+                <span>+ evidence chain</span><span>+ confidence HIGH/MED/LOW</span><span>+ 24h cache</span>
+              </div>
+              {/* dotted construction */}
+              <div className="mt-4 border border-dashed border-foreground/30 p-3">
+                <p className="font-mono text-[9px] tracking-[0.12em] uppercase">Construction line — 32px grid · 1px hairline · registration mark at 40.71 N</p>
+                <div className="mt-2 h-px bg-foreground/20" style={{ backgroundImage: "repeating-linear-gradient(to right, hsl(var(--foreground)) 0 4px, transparent 4px 8px)" }} aria-hidden="true" />
+              </div>
+            </div>
+            <p className="mt-3 font-mono text-[10px] tracking-[0.12em] uppercase text-muted-foreground">System note — All web content treated as evidence, never instructions. See SEC 04.</p>
+          </div>
+        </div>
+      </section>
+
+      {/* EDITORIAL CALLOUT — yellow tab + red offset */}
+      <section className="editorial-container pb-12">
+        <EditorialCallout
+          fig="FIG. A"
+          kicker="TODAY'S ART DIRECTION"
+          title="EXPLODED MEETING — AS TECHNICAL PLATE"
+          body="An open, precise look at how a meeting becomes intelligence. The working surface — attendees, host, company, agenda — is collected, resolved, enriched, evidenced, and composed into a brief that is scannable in 60 seconds and defensible at the source level. No purple gradients. Only ink, paper, and registration color."
+          tags={["EXPLODED VIEW","LEADER LINE","REGISTRATION MARK","SPOT COLOR","DRAFTING GRID","BLANK LABEL","ASSEMBLY PLATE"]}
+        />
+      </section>
+
+      {/* SEC 01 — TOOLING / WORKING SURFACE */}
+      <section id="index" className="editorial-container py-12">
+        <SectionHeader number="01" label="TOOLING" subtitle="THE WORKING SURFACE BECOMES INPUT." />
+        <div className="mt-8 grid lg:grid-cols-[1.1fr_0.9fr] gap-8">
+          <div className="space-y-6">
+            <p className="text-[15px] leading-relaxed">
+              The meeting is defined by a minimal set of inputs: <strong>title, host, attendees, agenda, date</strong>. From these, the system derives identity, context, and relevance. No auxiliary forms. No auxiliary dashboards. Only the surface that will become input.
+            </p>
+            <div className="grid grid-cols-2 gap-3 font-mono text-xs">
+              <FieldNote label="01 — HOST">You. Not researched as external attendee. Used for common-ground computation.</FieldNote>
+              <FieldNote label="02 — ATTENDEES">Name + company + role + GitHub/LinkedIn when known. Resolved to identity with confidence.</FieldNote>
+            </div>
+            <PullQuote cite="ENGINEERING MANUAL — 1968, REPRINT 2026">
+              The best tool disappears into the work it enables.
+            </PullQuote>
+            <div className="border border-foreground">
+              <div className="grid grid-cols-3 divide-x divide-foreground font-mono text-[10px] tracking-[0.12em] uppercase">
+                <div className="p-3"><p className="font-bold">Input</p><p className="text-muted-foreground mt-1">Title · Host · 3–10 attendees · Agenda</p></div>
+                <div className="p-3"><p className="font-bold">Derived</p><p className="text-muted-foreground mt-1">Identity · Company · Topics · Evidence</p></div>
+                <div className="p-3"><p className="font-bold">Output</p><p className="text-muted-foreground mt-1">Brief · 5-min · Walk-in</p></div>
+              </div>
+            </div>
+          </div>
+          <div className="border border-foreground bg-card p-4">
+            <TechnicalLabel className="mb-3 block">ATTENDEE INPUT — WIREFRAME 240×320</TechnicalLabel>
+            <div className="space-y-3">
+              <div className="border border-foreground p-3">
+                <p className="font-mono text-[10px] tracking-[0.14em] uppercase">Attendee 01 — Sarah Chen</p>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <div className="border border-foreground/30 bg-background p-2"><p className="font-mono text-[9px]">NAME *</p><p className="text-sm">Sarah Chen</p></div>
+                  <div className="border border-foreground/30 bg-background p-2"><p className="font-mono text-[9px]">COMPANY</p><p className="text-sm">Acme AI</p></div>
                 </div>
-                <span className="font-display font-semibold text-lg">Meeting Prep</span>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <div className="border border-foreground/30 bg-background p-2"><p className="font-mono text-[9px]">GITHUB</p><p className="font-mono text-xs">octocat</p></div>
+                  <div className="border border-foreground/30 bg-background p-2"><p className="font-mono text-[9px]">LINKEDIN</p><p className="font-mono text-xs">linkedin.com/in/…</p></div>
+                </div>
+                <div className="mt-3 flex gap-2">
+                  <span className="bg-[hsl(var(--accent-yellow))] border border-foreground px-2 py-1 font-mono text-[9px]">GitHub ✓</span>
+                  <span className="bg-[hsl(var(--accent-yellow))] border border-foreground px-2 py-1 font-mono text-[9px]">Company ✓</span>
+                  <span className="border border-foreground px-2 py-1 font-mono text-[9px] bg-card">Confidence: HIGH</span>
+                </div>
               </div>
-              <p className="text-muted-foreground text-sm max-w-xs mb-6">
-                AI-powered meeting preparation that gives you the edge. Research the people. Understand the context. Know what to ask.
-              </p>
-              <div className="flex gap-4">
-                <a href="#" className="text-muted-foreground hover:text-foreground transition-colors" aria-label="GitHub">
-                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.536-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
-                </a>
-                <a href="#" className="text-muted-foreground hover:text-foreground transition-colors" aria-label="Twitter">
-                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 9.24-3.308.837-9.172-9.997-9.156 9.237-3.278-.85 8.504-9.26-7.24-8.263h3.307l3.708 4.346Z"/></svg>
-                </a>
-              </div>
-            </div>
-            <div>
-              <h3 className="font-semibold mb-4">Product</h3>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><a href="#features" className="hover:text-foreground transition-colors">Features</a></li>
-                <li><a href="#how-it-works" className="hover:text-foreground transition-colors">How it works</a></li>
-                <li><a href="#preview" className="hover:text-foreground transition-colors">Preview</a></li>
-                <li><a href="#trust" className="hover:text-foreground transition-colors">Trust & Security</a></li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="font-semibold mb-4">Resources</h3>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><a href="#" className="hover:text-foreground transition-colors">Documentation</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">API Reference</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Changelog</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Community</a></li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="font-semibold mb-4">Company</h3>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><a href="#" className="hover:text-foreground transition-colors">About</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Blog</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Careers</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Contact</a></li>
-              </ul>
+              <FieldNote label="FIELD NOTE — SEC 01.03">Identity confidence uses name+company+role+linkedin+github+email. Insufficient → UNRESOLVED, asks for more info. Never guesses.</FieldNote>
             </div>
           </div>
-          <Separator className="my-8" />
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-            <p>&copy; 2026 Meeting Prep Assistant. All rights reserved.</p>
-            <div className="flex gap-6">
-              <a href="#" className="hover:text-foreground transition-colors">Privacy</a>
-              <a href="#" className="hover:text-foreground transition-colors">Terms</a>
-              <a href="#" className="hover:text-foreground transition-colors">Security</a>
+        </div>
+      </section>
+
+      {/* SEC 02 — CONTEXT ENGINE */}
+      <section className="editorial-container py-12">
+        <SectionHeader number="02" label="CONTEXT ENGINE" subtitle="FROM REGISTRATION → GIT HUB → WEB → EVIDENCE → PROFILE." />
+        <div className="mt-8 grid lg:grid-cols-2 gap-8">
+          <div className="border border-foreground bg-card">
+            <div className="p-4 border-b border-foreground flex items-center justify-between">
+              <span className="font-mono text-[10px] tracking-[0.14em]">PIPELINE — STAGED, PARALLEL</span>
+              <span className="font-mono text-[10px]">REV. 02</span>
+            </div>
+            <div className="p-4 space-y-2 font-mono text-[11px]">
+              <div className="flex items-center gap-2"><span className="h-2 w-2 bg-foreground" /> Host (You) — excluded from external research</div>
+              <div className="flex items-center gap-2"><span className="h-2 w-2 bg-foreground" /> Attendees ×3 — bounded parallel (semaphore 3)</div>
+              <div className="flex items-center gap-2"><span className="h-2 w-2 border border-foreground" /> GitHub profile + repos + events (10s, cached 24h)</div>
+              <div className="flex items-center gap-2"><span className="h-2 w-2 border border-foreground" /> Tavily search — 3/attendee, 4/company, 1/topic, budget ≤30</div>
+              <div className="h-px bg-foreground my-2" />
+              <div className="flex items-center gap-2"><span className="h-2 w-2 bg-[hsl(var(--accent-yellow))] border border-foreground" /> LLM synthesis — Zod validated, repair retry 3×, 5k context</div>
+              <div className="flex items-center gap-2"><span className="h-2 w-2 bg-[hsl(var(--accent-red))]" /> Brief → 60-sec + Full + 5-min + Walk-in</div>
+            </div>
+            <div className="p-3 bg-[hsl(var(--accent-yellow))] border-t border-foreground font-mono text-[10px] tracking-[0.12em] text-center">CACHED CONTEXT ~20ms · FRESH ~14–16s · TOTAL BUDGET ENFORCED</div>
+          </div>
+          <div className="space-y-4">
+            <p className="text-[15px] leading-relaxed">
+              ContextOS inspiration: <em>normalize → GitHub/Web → extract → Tavily → summarize → cache → agent</em>. We reimplement cleanly: identity normalization (ContextOS normalize.ts), GitHub snapshot (3 calls, languageShares, weekly activity), evidence-backed extraction, Tavily with 24h/7d cache, parallel pipeline with circuit breaker.
+            </p>
+            <div className="border border-foreground p-4">
+              <p className="font-mono text-[10px] tracking-[0.14em] uppercase">EXAMPLE — GITHUB RELEVANCE FILTER</p>
+              <p className="mt-2 text-sm leading-relaxed">Meeting topic: <span className="font-medium">AI inference infrastructure</span>. Relevant: LLM serving, CUDA optimization, inference engines. Irrelevant: dotfiles, personal blog. The engine scores relevance against agenda, not absolute popularity.</p>
+              <div className="mt-3 grid grid-cols-2 gap-2 font-mono text-[10px]">
+                <div className="border border-foreground p-2 bg-[hsl(var(--accent-yellow))]">LLM serving — 1.2k★ · RELEVANT</div>
+                <div className="border border-foreground p-2 bg-card text-muted-foreground">dotfiles — 42★ · LOW</div>
+              </div>
+            </div>
+            <TechnicalLabel>SYSTEM NOTE — All web content is untrusted data. System prompt: evidence, not instructions.</TechnicalLabel>
+          </div>
+        </div>
+      </section>
+
+      {/* SEC 03 — EVIDENCE */}
+      <section className="editorial-container py-12">
+        <SectionHeader number="03" label="EVIDENCE" subtitle="EVERY FACT HAS PROVENANCE OR IT IS MARKED INFERENCE." />
+        <div className="mt-8 grid lg:grid-cols-[0.9fr_1.1fr] gap-8">
+          <div className="border border-foreground bg-card p-6">
+            <p className="font-mono text-[10px] tracking-[0.14em] uppercase text-muted-foreground">Evidence chain — FIG. 03A</p>
+            <div className="mt-4 space-y-3 font-mono text-xs">
+              <div className="border border-foreground p-3 bg-background">
+                <p className="font-bold">FACT</p>
+                <p className="mt-1">Sarah previously worked on distributed ML infrastructure.</p>
+                <p className="text-muted-foreground mt-2">Source: Company engineering profile · 3 days ago</p>
+                <p className="mt-1 inline-flex border border-foreground px-2 py-0.5 bg-[hsl(var(--accent-yellow))] text-[10px]">Confidence: HIGH</p>
+              </div>
+              <div className="border border-dashed border-foreground p-3 bg-muted/30">
+                <p className="font-bold">INFERENCE</p>
+                <p className="mt-1">Likely led the migration from TF to PyTorch distributed.</p>
+                <p className="text-muted-foreground mt-1">Source: inferred from role + repo languages (Python 68%)</p>
+              </div>
+              <div className="border border-foreground p-3">
+                <p className="font-bold">SUGGESTION</p>
+                <p className="mt-1">Consider asking about the TF→PyTorch decision.</p>
+              </div>
             </div>
           </div>
+          <div className="space-y-6">
+            <p className="text-[15px] leading-relaxed">
+              The brief distinguishes three layers. <strong>FACT</strong> has a cited source. <strong>INFERENCE</strong> is reasonable interpretation. <strong>SUGGESTION</strong> is AI-generated advice. Never presenting a suggestion as fact is how the system earns trust, especially when research is partial or stale.
+            </p>
+            <PullQuote cite="PULL QUOTE — AVOID HALLUCINATED QUOTES">Information not verified.</PullQuote>
+            <p className="text-sm text-muted-foreground">When information cannot be verified, the system states it plainly rather than filling the gap. Watch-outs and low-confidence badges are first-class.</p>
+            <div className="flex flex-wrap gap-2 font-mono text-[10px]">
+              <span className="border border-foreground px-2 py-1 bg-[hsl(var(--accent-yellow))]">FACT ✓ Source</span>
+              <span className="border border-foreground px-2 py-1">INFERENCE <em> Likely</em></span>
+              <span className="border border-foreground px-2 py-1">SUGGESTION <em>Consider…</em></span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* SEC 04 — INTELLIGENCE PANEL */}
+      <section className="editorial-container py-12">
+        <SectionHeader number="04" label="INTELLIGENCE" subtitle="WHO'S IN THE ROOM, SHARED CONTEXT, RECENT SIGNALS." />
+        <div className="mt-8 border border-foreground">
+          <div className="grid sm:grid-cols-4 divide-x divide-foreground divide-y sm:divide-y-0 font-mono text-[10px] tracking-[0.12em] uppercase">
+            <div className="p-4"><p className="font-bold">Host</p><p className="text-muted-foreground mt-1">You — owner</p></div>
+            <div className="p-4"><p className="font-bold">Attendees</p><p className="text-muted-foreground mt-1">3 · 4 · High relevance</p></div>
+            <div className="p-4"><p className="font-bold">Common Ground</p><p className="text-muted-foreground mt-1">LLM infra · OSS</p></div>
+            <div className="p-4"><p className="font-bold">Recent Signals</p><p className="text-muted-foreground mt-1">3 repos · 2 weeks</p></div>
+          </div>
+          <div className="border-t border-foreground p-4 grid sm:grid-cols-2 gap-4 text-sm">
+            <div>
+              <p className="font-mono text-[10px] tracking-[0.14em] uppercase">WHY THIS MATTERS</p>
+              <p className="mt-2 leading-relaxed">Sarah's recent work on inference infrastructure directly overlaps with the technical integration you plan to discuss. Her GitHub shows 4 relevant repos around LLM serving.</p>
+            </div>
+            <div className="border border-foreground p-3 bg-[hsl(var(--accent-yellow))]">
+              <p className="font-mono text-[10px] tracking-[0.14em] uppercase">COMMON GROUND ENGINE</p>
+              <p className="mt-2 text-sm">Both you and Sarah maintain open-source inference tooling. Shared vocabulary: CUDA, vLLM, agent frameworks. Overlap only surfaced when evidenced.</p>
+            </div>
+          </div>
+        </div>
+        <div className="mt-6 grid sm:grid-cols-3 gap-3 font-mono text-[10px]">
+          <FieldNote label="30 — SEARCH">Server-side indexed, ≤5 per category, cached 60s. Use ⌘K.</FieldNote>
+          <FieldNote label="31 — NOTIFICATIONS">Research complete · Meeting in 30 min · Failed → persist, poll 15s, unread dot.</FieldNote>
+          <FieldNote label="32 — EXPORT">Markdown + JSON, always real. No fake buttons.</FieldNote>
+        </div>
+      </section>
+
+      {/* SEC 05 — PERFORMANCE */}
+      <section className="editorial-container py-12">
+        <SectionHeader number="05" label="PERFORMANCE" subtitle="MEASURED, NOT CLAIMED. CACHED, NOT RE-FETCHED." />
+        <div className="mt-8 border border-foreground">
+          <div className="grid grid-cols-4 font-mono text-[10px] tracking-[0.12em] uppercase divide-x divide-foreground bg-foreground text-background">
+            <div className="p-2 text-center">Metric</div>
+            <div className="p-2 text-center">Before</div>
+            <div className="p-2 text-center">After</div>
+            <div className="p-2 text-center bg-[hsl(var(--accent-yellow))] text-foreground">Improvement</div>
+          </div>
+          {[
+            ["Tavily+LLM attendees (4×)", "15.6s", "7.8s", "50%"],
+            ["Total pipeline (fresh)", "28–32s", "14–16s", "50%"],
+            ["Total (cached)", "30s", "3–4s", "90%"],
+            ["Search", "140ms", "18ms", "87%"],
+            ["Tavily queries / run", "70", "≤30 (budget)", "capped"],
+          ].map(r=>(
+            <div key={r[0]} className="grid grid-cols-4 font-mono text-xs divide-x divide-foreground border-t border-foreground">
+              <div className="p-2">{r[0]}</div><div className="p-2 text-center">{r[1]}</div><div className="p-2 text-center">{r[2]}</div><div className="p-2 text-center bg-[hsl(var(--accent-yellow))] font-bold">{r[3]}</div>
+            </div>
+          ))}
+        </div>
+        <p className="mt-3 font-mono text-[10px] tracking-[0.12em] uppercase text-muted-foreground">Method: parallel semaphore 3, smart planner (user→cache→GitHub→Tavily→LLM), Tavily 24h + GitHub 24h, LLM 24h, circuit breaker 3→60s.</p>
+      </section>
+
+      {/* CTA — editorial, not SaaS */}
+      <section className="editorial-container py-12">
+        <div className="border border-foreground p-6 sm:p-10">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
+            <div>
+              <p className="font-mono text-[11px] tracking-[0.18em] uppercase">ISSUE 015 — FINAL PLATE</p>
+              <h2 className="font-display font-black text-3xl sm:text-4xl uppercase tracking-[-0.02em] leading-none mt-2">NEVER WALK<br/>IN UNPREPARED.</h2>
+            </div>
+            <div className="flex flex-col gap-3 sm:items-end">
+              <Link href="/meetings/new" className="inline-flex bg-foreground text-background px-6 py-3 font-mono text-xs tracking-[0.14em] uppercase border border-foreground hover:bg-background hover:text-foreground text-center justify-center">
+                Prepare a Meeting — FREE
+              </Link>
+              <span className="font-mono text-[10px] tracking-[0.12em] text-muted-foreground">No credit card · Local Ollama or hosted LLM · Tavily research</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FOOTER — editorial */}
+      <footer className="editorial-container py-8">
+        <div className="hairline" aria-hidden="true" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-6">
+          <p className="font-mono text-[11px] tracking-[0.18em] uppercase font-bold">MEETING INTELLIGENCE — ISSUE 015 / 2026</p>
+          <nav className="flex gap-4 font-mono text-[11px] tracking-[0.14em] uppercase">
+            <Link href="#" className="hover:underline">Index</Link>
+            <Link href="#" className="hover:underline">About</Link>
+            <Link href="#" className="hover:underline">Archive</Link>
+            <Link href="#" className="hover:underline">Contact</Link>
+          </nav>
+        </div>
+        <div className="flex justify-between font-mono text-[10px] tracking-[0.12em] uppercase text-muted-foreground mt-4">
+          <span>ISSUE 015 — 2026 — REV. 02</span><span> PRINTED IN CACHYOS — NIRI 26.04</span>
         </div>
       </footer>
-    </div>
-  )
-}
-
-function BriefPreview() {
-  return (
-    <div className="relative rounded-2xl border border-border bg-card shadow-2xl overflow-hidden">
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-muted/50">
-        <div className="flex gap-1.5">
-          <div className="h-3 w-3 rounded-full bg-red-500" />
-          <div className="h-3 w-3 rounded-full bg-yellow-500" />
-          <div className="h-3 w-3 rounded-full bg-green-500" />
-        </div>
-        <div className="flex-1 text-center text-xs text-muted-foreground font-mono">
-          meeting-brief.md
-        </div>
-        <div className="h-3 w-3 rounded-full bg-muted" />
-      </div>
-      <div className="p-6 max-h-[500px] overflow-y-auto">
-        <div className="space-y-6 text-sm">
-          <div className="pb-4 border-b border-border">
-            <h3 className="font-semibold text-lg mb-1">Acme AI Partnership Discussion</h3>
-            <div className="flex flex-wrap items-center justify-center gap-4 text-muted-foreground">
-              <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> Tomorrow · 10:30 AM</span>
-              <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" /> 3 attendees</span>
-              <Badge variant="success" className="text-xs">Research Ready</Badge>
-            </div>
-          </div>
-          <div>
-            <h4 className="font-semibold flex items-center gap-2 mb-3"><Lightbulb className="h-4 w-4 text-yellow-500" /> TL;DR</h4>
-            <ul className="space-y-2">
-              {[
-                "Acme AI recently launched ModelX — their first enterprise LLM platform",
-                "Jane Doe (VP Eng) previously led ML infrastructure at Google Cloud",
-                "Partnership discussions center on ModelX integration with your API gateway",
-                "Acme raised $50M Series B led by Example Ventures (John Smith on board)",
-              ].map((item, i) => (
-                <li key={i} className="flex gap-2">
-                  <span className="text-primary font-medium">{i + 1}.</span>
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h4 className="font-semibold flex items-center gap-2 mb-3"><Users className="h-4 w-4" /> Key Attendees</h4>
-            <div className="space-y-3">
-              {[
-                { name: "Jane Doe", role: "VP Engineering", company: "Acme AI", insight: "Led ML infra at Google Cloud · Published on distributed training" },
-                { name: "John Smith", role: "Partner", company: "Example Ventures", insight: "Invested in 12 AI infra companies · Board observer at Acme" },
-                { name: "Alex Chen", role: "Tech Lead", company: "Acme AI", insight: "Core contributor to ModelX architecture · Open source maintainer" },
-              ].map((a, i) => (
-                <div key={i} className="flex gap-3 p-3 rounded-lg bg-muted/50">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium">{a.name.split(' ').map(n => n[0]).join('')}</div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium">{a.name}</p>
-                    <p className="text-xs text-muted-foreground">{a.role} · {a.company}</p>
-                    <p className="text-xs text-primary mt-1 truncate">{a.insight}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div>
-            <h4 className="font-semibold flex items-center gap-2 mb-3"><MessageSquare className="h-4 w-4" /> Conversation Starters</h4>
-            <div className="space-y-2">
-              {[
-                '"I saw ModelX launched last month — how has the enterprise reception been so far?"',
-                '"Given your background in distributed training, what bottlenecks do you see in current LLM serving?"',
-                '"Example Ventures has a great portfolio — what thesis drove the Acme investment?"',
-              ].map((s, i) => (
-                <div key={i} className="p-3 rounded-lg border border-border bg-muted/30 text-sm">"{s}"</div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function FeatureCard({ feature, index }: { feature: typeof features[0]; index: number }) {
-  return (
-    <Card className="group h-full transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-border/50">
-      <CardHeader>
-        <div className={cn("inline-flex h-12 w-12 items-center justify-center rounded-xl mb-4", feature.bgColor)}>
-          <feature.icon className={cn("h-6 w-6", feature.color)} aria-hidden="true" />
-        </div>
-        <CardTitle className="text-lg">{feature.title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-muted-foreground text-body-sm leading-relaxed">{feature.description}</p>
-      </CardContent>
-    </Card>
-  )
-}
-
-function WorkflowStep({ step, index, total }: { step: typeof workflowSteps[0]; index: number; total: number }) {
-  return (
-    <div className="relative flex flex-col items-center text-center">
-      <div className="relative z-10 flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold text-xl">
-        {step.step}
-      </div>
-      <div className="mt-6">
-        <h3 className="font-semibold text-lg">{step.title}</h3>
-        <p className="mt-2 text-muted-foreground text-sm max-w-xs">{step.description}</p>
-      </div>
-      {index < total - 1 && (
-        <div className="hidden lg:block absolute left-1/2 top-8 w-full h-px bg-border -translate-x-1/2 -z-10" aria-hidden="true" />
-      )}
-    </div>
-  )
-}
-
-function TrustCard({ point, index }: { point: typeof trustPoints[0]; index: number }) {
-  return (
-    <Card className="h-full border-border/50">
-      <CardContent className="pt-6">
-        <div className="flex items-start gap-4">
-          <div className="flex-shrink-0 mt-0.5 text-success">
-            <point.icon className="h-6 w-6" aria-hidden="true" />
-          </div>
-          <p className="text-body-sm text-foreground leading-relaxed">{point.text}</p>
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
-function ModeCard({ title, description, icon: Icon, features, badge, badgeColor = "bg-muted text-muted-foreground" }: { 
-  title: string; 
-  description: string; 
-  icon: React.ComponentType<any>;
-  features: string[];
-  badge: string;
-  badgeColor?: string;
-}) {
-  return (
-    <Card className="h-full flex flex-col border-border/50">
-      <CardHeader>
-        <div className="flex items-center justify-between mb-4">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <Icon className="h-6 w-6" aria-hidden="true" />
-          </div>
-          <Badge variant="outline" className={badgeColor}>{badge}</Badge>
-        </div>
-        <CardTitle className="text-lg">{title}</CardTitle>
-      </CardHeader>
-      <CardContent className="flex-1 flex flex-col">
-        <p className="text-muted-foreground text-body-sm mb-6">{description}</p>
-        <ul className="space-y-2 mb-6 flex-1">
-          {features.map((f, i) => (
-            <li key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
-              <CheckCircle className="h-4 w-4 text-success" aria-hidden="true" />
-              <span>{f}</span>
-            </li>
-          ))}
-        </ul>
-        <Button variant="outline" className="w-full" asChild>
-          <Link href="/meetings/new">Try {title} →</Link>
-        </Button>
-      </CardContent>
-    </Card>
-  )
-}
-
-function ProductPreview() {
-  return (
-    <div className="relative rounded-2xl border border-border bg-card shadow-2xl overflow-hidden">
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-muted/50">
-        <div className="flex gap-1.5">
-          <div className="h-3 w-3 rounded-full bg-red-500" />
-          <div className="h-3 w-3 rounded-full bg-yellow-500" />
-          <div className="h-3 w-3 rounded-full bg-green-500" />
-        </div>
-        <div className="flex-1 text-center text-xs text-muted-foreground font-mono">
-          meeting-brief.md
-        </div>
-        <div className="h-3 w-3 rounded-full bg-muted" />
-      </div>
-      <div className="p-6 max-h-[500px] overflow-y-auto">
-        <div className="space-y-6 text-sm">
-          <div className="pb-4 border-b border-border">
-            <h3 className="font-semibold text-lg mb-1">Acme AI Partnership Discussion</h3>
-            <div className="flex flex-wrap items-center justify-center gap-4 text-muted-foreground">
-              <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> Tomorrow · 10:30 AM</span>
-              <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" /> 3 attendees</span>
-              <Badge variant="success" className="text-xs">Research Ready</Badge>
-            </div>
-          </div>
-          <div>
-            <h4 className="font-semibold flex items-center gap-2 mb-3"><Lightbulb className="h-4 w-4 text-yellow-500" /> TL;DR</h4>
-            <ul className="space-y-2">
-              {[
-                "Acme AI recently launched ModelX — their first enterprise LLM platform",
-                "Jane Doe (VP Eng) previously led ML infrastructure at Google Cloud",
-                "Partnership discussions center on ModelX integration with your API gateway",
-                "Acme raised $50M Series B led by Example Ventures (John Smith on board)",
-              ].map((item, i) => (
-                <li key={i} className="flex gap-2">
-                  <span className="text-primary font-medium">{i + 1}.</span>
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h4 className="font-semibold flex items-center gap-2 mb-3"><Users className="h-4 w-4" /> Key Attendees</h4>
-            <div className="space-y-3">
-              {[
-                { name: "Jane Doe", role: "VP Engineering", company: "Acme AI", insight: "Led ML infra at Google Cloud · Published on distributed training" },
-                { name: "John Smith", role: "Partner", company: "Example Ventures", insight: "Invested in 12 AI infra companies · Board observer at Acme" },
-                { name: "Alex Chen", role: "Tech Lead", company: "Acme AI", insight: "Core contributor to ModelX architecture · Open source maintainer" },
-              ].map((a, i) => (
-                <div key={i} className="flex gap-3 p-3 rounded-lg bg-muted/50">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium">{a.name.split(' ').map(n => n[0]).join('')}</div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium">{a.name}</p>
-                    <p className="text-xs text-muted-foreground">{a.role} · {a.company}</p>
-                    <p className="text-xs text-primary mt-1 truncate">{a.insight}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div>
-            <h4 className="font-semibold flex items-center gap-2 mb-3"><MessageSquare className="h-4 w-4" /> Conversation Starters</h4>
-            <div className="space-y-2">
-              {[
-                '"I saw ModelX launched last month — how has the enterprise reception been so far?"',
-                '"Given your background in distributed training, what bottlenecks do you see in current LLM serving?"',
-                '"Example Ventures has a great portfolio — what thesis drove the Acme investment?"',
-              ].map((s, i) => (
-                <div key={i} className="p-3 rounded-lg border border-border bg-muted/30 text-sm">"{s}"</div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
+      <div className="h-8" aria-hidden="true" />
     </div>
   )
 }

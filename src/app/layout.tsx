@@ -44,12 +44,6 @@ export const metadata: Metadata = {
     title: "Meeting Prep Assistant",
     description: "Walk into every meeting prepared. AI-powered meeting intelligence.",
   },
-  icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon-16x16.png",
-    apple: "/apple-touch-icon.png",
-  },
-  manifest: "/site.webmanifest",
 }
 
 export const viewport: Viewport = {
@@ -69,10 +63,6 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${instrumentSans.variable} ${fraunces.variable} ${ibmPlexMono.variable}`} suppressHydrationWarning>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      </head>
       <body className="font-sans antialiased">
         <TooltipProvider>
           {children}
