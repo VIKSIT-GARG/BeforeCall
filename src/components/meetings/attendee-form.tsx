@@ -28,7 +28,7 @@ export function AttendeeForm({ attendee, index, onUpdate, onRemove, canRemove }:
                   id={`attendee-name-${index}`}
                   value={attendee.name}
                   onChange={(e) => onUpdate(index, "name", e.target.value)}
-                  placeholder="Jane Doe"
+                  placeholder="Sarah Chen"
                   required
                 />
               </div>
@@ -39,7 +39,7 @@ export function AttendeeForm({ attendee, index, onUpdate, onRemove, canRemove }:
                   type="email"
                   value={attendee.email || ""}
                   onChange={(e) => onUpdate(index, "email", e.target.value)}
-                  placeholder="jane@company.com"
+                  placeholder="sarah@acme.ai"
                 />
               </div>
             </div>

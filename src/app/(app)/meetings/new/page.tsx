@@ -507,7 +507,7 @@ function AttendeeCard({ attendee, index, onUpdate, onRemove, canRemove }: {
             id={`name-${attendee.id}`}
             value={attendee.name}
             onChange={e => onUpdate(attendee.id, "name", e.target.value)}
-            placeholder="Jane Doe"
+            placeholder="Sarah Chen"
             required
           />
         </div>
@@ -518,7 +518,7 @@ function AttendeeCard({ attendee, index, onUpdate, onRemove, canRemove }: {
             type="email"
             value={attendee.email}
             onChange={e => onUpdate(attendee.id, "email", e.target.value)}
-            placeholder="jane@company.com"
+            placeholder="sarah@acme.ai"
           />
         </div>
       </div>

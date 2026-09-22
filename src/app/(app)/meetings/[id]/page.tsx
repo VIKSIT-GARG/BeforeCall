@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -18,18 +18,18 @@ export default function MeetingDetailPage() {
   const [progress, setProgress] = useState<{stage:any, progress:number, message:string}|null>(null)
   const [error, setError] = useState("")
 
-  const fetchMeeting = async()=>{
+  const fetchMeeting = useCallback(async()=>{
+    if(!id) return
     setError("")
     try{
       const r = await fetch(`/api/meetings/${id}`)
       const d = await r.json()
       if(!d.success) throw new Error(d.error)
-      // parse brief JSON strings for display convenience, BriefPremium does its own parsing, but keep as is
       setMeeting(d.data)
     }catch(e:any){ setError(e.message||"Failed to load") }
     finally{ setLoading(false)}
-  }
-  useEffect(()=>{ if(id) fetchMeeting()},[id])
+  },[id])
+  useEffect(()=>{ void fetchMeeting() },[fetchMeeting])
 
   const startResearch = async()=>{
     setResearching(true); setError(""); setProgress({stage:'extracting', progress:5, message:'Starting research...'})
