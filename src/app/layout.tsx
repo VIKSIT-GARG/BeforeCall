@@ -1,27 +1,6 @@
 import type { Metadata, Viewport } from "next"
-import { Instrument_Sans, Fraunces, IBM_Plex_Mono } from "next/font/google"
 import "./globals.css"
 import { TooltipProvider } from "@/components/ui/tooltip"
-
-const instrumentSans = Instrument_Sans({ 
-  subsets: ["latin"], 
-  variable: "--font-inter",
-  display: "swap",
-})
-
-const fraunces = Fraunces({ 
-  subsets: ["latin"], 
-  variable: "--font-display",
-  display: "swap",
-  axes: ["SOFT","WONK","opsz"],
-})
-
-const ibmPlexMono = IBM_Plex_Mono({ 
-  subsets: ["latin"], 
-  weight: ["400","500"],
-  variable: "--font-mono",
-  display: "swap",
-})
 
 export const metadata: Metadata = {
   title: "Meeting Prep Assistant — Walk into every meeting prepared",
@@ -62,7 +41,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${instrumentSans.variable} ${fraunces.variable} ${ibmPlexMono.variable}`} suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <body className="font-sans antialiased">
         <TooltipProvider>
           {children}

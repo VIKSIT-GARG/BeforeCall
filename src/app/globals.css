@@ -4,6 +4,9 @@
 
 @layer base {
   :root {
+    --font-inter: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-display: Georgia, "Times New Roman", serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
     --radius: 2px; /* sharp, technical */
     --background: 38 33% 97%; /* warm paper #fdf8f0 */
     --foreground: 0 0% 7%; /* almost black #111 */
