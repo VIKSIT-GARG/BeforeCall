@@ -49,12 +49,22 @@ function isCircuitOpen(): boolean {
   return false;
 }
 
+function shouldFallbackToOllama(): boolean {
+  if (process.env.VERCEL) return false;
+  if (process.env.NODE_ENV === 'production' && !process.env.OLLAMA_BASE_URL) return false;
+  return true;
+}
+
 function tripCircuit(reason: string) {
   circuit.failures++;
-  const until = Date.now() + 180_000; // Open for 3 minutes
+  if (circuit.failures < 3) {
+    console.warn(`[NvidiaProvider] Warning (${circuit.failures}/3): ${reason}`);
+    return;
+  }
+  const until = Date.now() + 30_000; // Open for 30 seconds
   circuit.openUntil = until;
   setStoredOpenUntil(until);
-  console.warn(`[NvidiaProvider] Circuit breaker tripped (180s) due to: ${reason} -> routing to Ollama`);
+  console.warn(`[NvidiaProvider] Circuit breaker tripped (30s) due to: ${reason}`);
 }
 
 function recordSuccess() {
@@ -102,7 +112,7 @@ export class NvidiaProvider implements LLMProvider {
     opts: { jsonMode?: boolean; stream?: boolean; timeoutMs?: number; maxTokens?: number }
   ): Promise<string | null> {
     if (!this.apiKey) return null;
-    const timeoutMs = opts.timeoutMs ?? 6000;
+    const timeoutMs = opts.timeoutMs ?? 25000;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     const started = Date.now();
@@ -152,15 +162,17 @@ export class NvidiaProvider implements LLMProvider {
   }
 
   async generateJSON<T>(prompt: string, schema: z.ZodSchema<T>, options?: LLMCallOptions): Promise<T | null> {
-    // If circuit is open, immediately delegate to Ollama without blocking
+    // If circuit is open, delegate to Ollama only if local/configured
     if (isCircuitOpen()) {
-      try {
-        const ollama = new OllamaProvider();
-        return await ollama.generateJSON(prompt, schema, options);
-      } catch (e: any) {
-        console.warn('[NvidiaProvider] Ollama fallback failed:', e.message);
-        return null;
+      if (shouldFallbackToOllama()) {
+        try {
+          const ollama = new OllamaProvider();
+          return await ollama.generateJSON(prompt, schema, options);
+        } catch (e: any) {
+          console.warn('[NvidiaProvider] Ollama fallback failed:', e.message);
+        }
       }
+      return null;
     }
 
     const systemPrompt = options?.systemPrompt;
@@ -169,7 +181,7 @@ export class NvidiaProvider implements LLMProvider {
     let lastRaw = '';
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-      const timeoutMs = attempt === 0 ? 6000 : 8000;
+      const timeoutMs = attempt === 0 ? 25000 : 35000;
       try {
         const messages: Array<{ role: string; content: string }> = [];
         if (systemPrompt) messages.push({ role: 'system', content: systemPrompt });
@@ -205,39 +217,43 @@ export class NvidiaProvider implements LLMProvider {
           await new Promise(r => setTimeout(r, 500));
           continue;
         }
-        // If aborted or connection failed, trip the circuit breaker immediately
         tripCircuit(error.message || 'connection timeout');
         break;
       }
     }
 
-    // Graceful degradation: fallback to local Ollama if available
-    try {
-      const ollama = new OllamaProvider();
-      const res = await ollama.generateJSON(prompt, schema, options);
-      if (res) {
-        console.info('[NvidiaProvider] Degraded to local Ollama fallback successfully');
-        return res;
-      }
-    } catch {}
+    // Graceful degradation: fallback to local Ollama only if running locally
+    if (shouldFallbackToOllama()) {
+      try {
+        const ollama = new OllamaProvider();
+        const res = await ollama.generateJSON(prompt, schema, options);
+        if (res) {
+          console.info('[NvidiaProvider] Degraded to local Ollama fallback successfully');
+          return res;
+        }
+      } catch {}
+    }
 
     return null;
   }
 
   async generateText(prompt: string, options?: LLMCallOptions): Promise<string | null> {
     if (isCircuitOpen()) {
-      try {
-        const ollama = new OllamaProvider();
-        return await ollama.generateText(prompt, options);
-      } catch (e: any) {
-        return null;
+      if (shouldFallbackToOllama()) {
+        try {
+          const ollama = new OllamaProvider();
+          return await ollama.generateText(prompt, options);
+        } catch (e: any) {
+          return null;
+        }
       }
+      return null;
     }
 
     const systemPrompt = options?.systemPrompt;
     const temperature = options?.temperature ?? 0.4;
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-      const timeoutMs = attempt === 0 ? 6000 : 8000;
+      const timeoutMs = attempt === 0 ? 20000 : 30000;
       try {
         const messages: Array<{ role: string; content: string }> = [];
         if (systemPrompt) messages.push({ role: 'system', content: systemPrompt });
@@ -256,28 +272,32 @@ export class NvidiaProvider implements LLMProvider {
       }
     }
 
-    // Fallback to local Ollama
-    try {
-      const ollama = new OllamaProvider();
-      const res = await ollama.generateText(prompt, options);
-      if (res) {
-        console.info('[NvidiaProvider] Degraded to local Ollama text successfully');
-        return res;
-      }
-    } catch {}
+    // Fallback to local Ollama only if allowed
+    if (shouldFallbackToOllama()) {
+      try {
+        const ollama = new OllamaProvider();
+        const res = await ollama.generateText(prompt, options);
+        if (res) {
+          console.info('[NvidiaProvider] Degraded to local Ollama text successfully');
+          return res;
+        }
+      } catch {}
+    }
 
     return null;
   }
 
   async *generateTextStream(prompt: string, options?: LLMCallOptions): AsyncGenerator<string, void, unknown> {
     if (isCircuitOpen()) {
-      try {
-        const ollama = new OllamaProvider();
-        for await (const chunk of ollama.generateTextStream(prompt, options)) {
-          yield chunk;
+      if (shouldFallbackToOllama()) {
+        try {
+          const ollama = new OllamaProvider();
+          for await (const chunk of ollama.generateTextStream(prompt, options)) {
+            yield chunk;
+          }
+        } catch (ollamaErr: any) {
+          console.error('[NvidiaProvider] Ollama stream error:', ollamaErr.message);
         }
-      } catch (ollamaErr: any) {
-        console.error('[NvidiaProvider] Ollama stream error:', ollamaErr.message);
       }
       return;
     }
@@ -288,14 +308,14 @@ export class NvidiaProvider implements LLMProvider {
 
     if (this.apiKey) {
       const controller = new AbortController();
-      // TTFB timeout: if no first token within 4 seconds, abort and cut over to Ollama
+      // TTFB timeout: allow up to 15 seconds for cloud provider first token
       let firstTokenReceived = false;
       const ttfbTimer = setTimeout(() => {
         if (!firstTokenReceived) {
-          tripCircuit('TTFB timeout > 4s');
+          tripCircuit('TTFB timeout > 15s');
           controller.abort();
         }
-      }, 4000);
+      }, 15000);
 
       const started = Date.now();
       let firstTokenAt: number | null = null;
@@ -353,14 +373,14 @@ export class NvidiaProvider implements LLMProvider {
           tripCircuit(`HTTP ${res.status}`);
         }
       } catch (e: any) {
-        console.warn('[NvidiaProvider] Stream error, trying Ollama fallback:', e.message);
+        console.warn('[NvidiaProvider] Stream error:', e.message);
         tripCircuit(e.message || 'stream failed');
       } finally {
         clearTimeout(ttfbTimer);
       }
     }
 
-    if (!yieldedAny) {
+    if (!yieldedAny && shouldFallbackToOllama()) {
       try {
         const ollama = new OllamaProvider();
         for await (const chunk of ollama.generateTextStream(prompt, options)) {
