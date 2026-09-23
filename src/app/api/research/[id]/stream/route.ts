@@ -28,7 +28,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const url = new URL(request.url);
   const refresh = url.searchParams.get('refresh') === 'true' || url.searchParams.get('refresh') === '1';
 
-  const meeting = await prisma.meeting.findUnique({ where: { id }, select: { id: true, status: true } });
+  const meeting = await prisma.meeting.findUnique({ where: { id }, select: { id: true, status: true, updatedAt: true } });
   if (!meeting) {
     return new Response(JSON.stringify({ type: 'error', message: 'Meeting not found' }) + '\n', {
       status: 404,
@@ -36,11 +36,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     });
   }
 
-  // If already researching and not refresh, allow streaming but don't duplicate — just stream current progress via polling fallback
-  // For simplicity, we claim if RESEARCHING and not refresh, return 409 as NDJSON
-  if (meeting.status === 'RESEARCHING' && !refresh) {
-    // Still allow streaming to see progress — but we need to prevent duplicate pipeline
-    // We will return a stream that just emits current status and completes
+  // If already researching and updated within the last 60 seconds, prevent duplicate pipeline
+  const isStale = Date.now() - new Date(meeting.updatedAt).getTime() > 60_000;
+  if (meeting.status === 'RESEARCHING' && !refresh && !isStale) {
     const stream = new ReadableStream({
       start(controller) {
         const enc = new TextEncoder();
@@ -59,20 +57,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   // Claim
-  const claimed = await prisma.meeting.updateMany({
-    where: { id, status: { not: 'RESEARCHING' } },
+  await prisma.meeting.update({
+    where: { id },
     data: { status: 'RESEARCHING' },
   });
-  if (claimed.count === 0 && !refresh) {
-    const stream = new ReadableStream({
-      start(controller) {
-        const enc = new TextEncoder();
-        controller.enqueue(enc.encode(JSON.stringify({ type: 'error', message: 'Research already in progress' }) + '\n'));
-        controller.close();
-      },
-    });
-    return new Response(stream, { headers: { 'Content-Type': 'application/x-ndjson' }, status: 409 });
-  }
 
   // Streaming pipeline
   const encoder = new TextEncoder();

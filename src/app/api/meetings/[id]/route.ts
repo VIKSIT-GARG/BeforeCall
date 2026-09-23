@@ -9,6 +9,8 @@ function isValidId(id: string): boolean {
   return typeof id === 'string' && id.length >= 1 && id.length <= 128 && /^[a-z0-9_-]+$/i.test(id);
 }
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -19,22 +21,23 @@ export async function GET(
       return NextResponse.json({ success: false, error: 'Invalid meeting id' }, { status: 400 });
     }
 
-    const meeting = await cached(`db:meeting:${id}`, 0, 'meeting', async () => {
-      return prisma.meeting.findUnique({
-        where: { id },
-        include: {
-          attendees: { include: { profile: true } },
-          research: true,
-          brief: true,
-        },
-      });
+    const meeting = await prisma.meeting.findUnique({
+      where: { id },
+      include: {
+        attendees: { include: { profile: true } },
+        research: true,
+        brief: true,
+      },
     });
 
     if (!meeting) {
       return NextResponse.json({ success: false, error: 'Meeting not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, data: meeting });
+    return NextResponse.json(
+      { success: true, data: meeting },
+      { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } }
+    );
   } catch (error) {
     console.error('Error fetching meeting:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json({ success: false, error: 'Failed to fetch meeting' }, { status: 500 });

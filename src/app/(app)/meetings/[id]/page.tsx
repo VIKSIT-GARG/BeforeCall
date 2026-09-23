@@ -24,7 +24,10 @@ export default function MeetingDetailPage() {
     if(!id) return
     setError("")
     try{
-      const r = await fetch(`/api/meetings/${id}`)
+      const r = await fetch(`/api/meetings/${id}?_t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' }
+      })
       const d = await r.json()
       if(!d.success) throw new Error(d.error)
       setMeeting(d.data)
@@ -60,6 +63,10 @@ export default function MeetingDetailPage() {
         } else if(evt.type==='brief_section'){
           // brief sections arrive progressively — could hydrate partial brief here
           setProgress(p=> ({ stage: p?.stage || 'synthesizing', progress: 90, message: `Brief section: ${evt.section}` }))
+        } else if(evt.type==='brief'){
+          if(evt.data) {
+            setMeeting((prev: any) => prev ? ({ ...prev, brief: evt.data, status: 'COMPLETED' }) : prev)
+          }
         } else if(evt.type==='complete'){
           setProgress({stage:'complete', progress:100, message: evt.data?.message || 'Research complete!'})
         } else if(evt.type==='error'){
@@ -70,7 +77,10 @@ export default function MeetingDetailPage() {
     }catch(e:any){
       setProgress({stage:'error', progress:0, message: e.message||'Research failed'})
       setError(e.message)
-    }finally{ setResearching(false)}
+    }finally{
+      setResearching(false)
+      await fetchMeeting()
+    }
   }
 
   if(loading) return <div className="space-y-4 max-w-4xl mx-auto">{[1,2,3].map(i=><div key={i} className="h-32 rounded-2xl bg-muted animate-pulse"/>)}</div>

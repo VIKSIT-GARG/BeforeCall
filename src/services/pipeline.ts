@@ -515,13 +515,15 @@ export async function runResearchPipeline(
     bench.end('llm:brief');
     try { console.timeEnd('llm:brief'); } catch {}
 
-    if (brief) {
-      if (brief) {
-      emit({ type: 'brief_section', section: 'tldr', data: brief.tldr });
-      emit({ type: 'brief_section', section: 'attendees', data: brief.attendeeSummaries });
-      emit({ type: 'brief_section', section: 'brief', data: brief });
-      emit({ type: 'brief', data: brief });
+    if (!brief) {
+      throw new Error('Brief synthesis failed to produce content');
     }
+
+    emit({ type: 'brief_section', section: 'tldr', data: brief.tldr });
+    emit({ type: 'brief_section', section: 'attendees', data: brief.attendeeSummaries });
+    emit({ type: 'brief_section', section: 'brief', data: brief });
+    emit({ type: 'brief', data: brief });
+
     bench.start('db:brief');
       console.time('db:brief');
       await prisma.brief.upsert({
@@ -554,7 +556,6 @@ export async function runResearchPipeline(
       await incrementDataVersion('brief');
       bench.end('db:brief');
       try { console.timeEnd('db:brief'); } catch {}
-    }
 
     bench.start('db:complete');
     console.time('db:complete');
