@@ -6,7 +6,7 @@
  * Added: cache wrapper (github:profile:username 24h), budget caps (max 60 repos), refresh bypass.
  */
 import 'server-only';
-import { cache, getTtlFor } from '@/lib/cache';
+import { cache, getTtlFor, cached, buildCacheKey } from '@/lib/cache';
 import { globalBudget, BUDGET } from '@/lib/budget';
 
 const GITHUB_API_BASE = 'https://api.github.com';
@@ -62,7 +62,7 @@ async function githubFetch(path: string, token: string | undefined): Promise<Res
   const headers: Record<string, string> = {
     Accept: 'application/vnd.github+json',
     'X-GitHub-Api-Version': '2022-11-28',
-    'User-Agent': 'meeting-prep-assistant',
+    'User-Agent': 'BeforeCall',
   };
   if (token) headers.Authorization = `Bearer ${token}`;
   try {
@@ -90,21 +90,28 @@ async function fetchGithubSnapshotInternal(username: string, explicitToken?: str
   if (!/^[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}$/.test(login)) throw new Error(`Invalid GitHub username: ${username}`);
   const token = getToken(explicitToken);
 
-  // 3 parallel calls (user, repos, events) — repos capped at 60 per budget (max 60 GitHub repos)
+  // 3 concurrent calls (user, repos, events) via Promise.allSettled — failure of repos/events won't kill user lookup
   const perPage = Math.min(60, BUDGET.MAX_GITHUB_REPOS);
-  const [userRes, reposRes, eventsRes] = await Promise.all([
+  const [userSettled, reposSettled, eventsSettled] = await Promise.allSettled([
     githubFetch(`/users/${encodeURIComponent(login)}`, token),
     githubFetch(`/users/${encodeURIComponent(login)}/repos?per_page=${perPage}&sort=updated&type=owner`, token),
     githubFetch(`/users/${encodeURIComponent(login)}/events/public?per_page=100`, token),
   ]);
 
+  if (userSettled.status === 'rejected') {
+    throw userSettled.reason;
+  }
+  const userRes = userSettled.value;
+
   // Handle rate-limit / auth errors early
-  for (const r of [userRes, reposRes, eventsRes]) {
+  const settledResponses: Response[] = [userRes];
+  if (reposSettled.status === 'fulfilled') settledResponses.push(reposSettled.value);
+  if (eventsSettled.status === 'fulfilled') settledResponses.push(eventsSettled.value);
+
+  for (const r of settledResponses) {
     if (r.status === 403 || r.status === 429) {
-      // Check if rate-limit specifically
       const remaining = r.headers.get('x-ratelimit-remaining');
       if (remaining === '0' || r.status === 429) handleRateLimit(r);
-      // 403 may also be forbidden; treat as rate-limit if low remaining, else surface
       if (r.status === 403 && remaining === '0') handleRateLimit(r);
     }
   }
@@ -114,27 +121,24 @@ async function fetchGithubSnapshotInternal(username: string, explicitToken?: str
     if (userRes.status === 404) throw Object.assign(new Error(`GitHub user not found: ${login}`), { status: 404 });
     throw Object.assign(new Error(`GitHub user fetch failed ${userRes.status}: ${text.slice(0, 300)}`), { status: userRes.status });
   }
-  // Repos/events may be empty but should be ok; if they fail, treat as empty rather than fatal
   const user = (await userRes.json()) as Record<string, unknown>;
 
   let repos: Array<Record<string, unknown>> = [];
-  if (reposRes.ok) {
-    repos = (await reposRes.json().catch(() => [])) as Array<Record<string, unknown>>;
+  if (reposSettled.status === 'fulfilled' && reposSettled.value.ok) {
+    repos = (await reposSettled.value.json().catch(() => [])) as Array<Record<string, unknown>>;
     if (!Array.isArray(repos)) repos = [];
-    // Enforce cap 60 (budget)
     if (repos.length > BUDGET.MAX_GITHUB_REPOS) repos = repos.slice(0, BUDGET.MAX_GITHUB_REPOS);
     globalBudget.recordGithubRepos(repos.length);
   } else {
-    // Non-ok but not rate-limit → log and continue with empty
-    console.warn(`[github] repos fetch ${reposRes.status} for ${login}, continuing with empty`);
+    console.warn(`[github] repos fetch failed or non-ok for ${login}, continuing with empty`);
   }
 
   let events: Array<Record<string, unknown>> = [];
-  if (eventsRes.ok) {
-    events = (await eventsRes.json().catch(() => [])) as Array<Record<string, unknown>>;
+  if (eventsSettled.status === 'fulfilled' && eventsSettled.value.ok) {
+    events = (await eventsSettled.value.json().catch(() => [])) as Array<Record<string, unknown>>;
     if (!Array.isArray(events)) events = [];
   } else {
-    console.warn(`[github] events fetch ${eventsRes.status} for ${login}, continuing with empty`);
+    console.warn(`[github] events fetch failed or non-ok for ${login}, continuing with empty`);
   }
 
   // Compute languages
@@ -225,17 +229,9 @@ export async function fetchGithubSnapshot(
   if (!login) throw new Error('username required');
   if (!/^[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}$/.test(login)) throw new Error(`Invalid GitHub username: ${username}`);
   const refresh = !!opts?.refresh;
-  const cacheKey = `github:profile:${login}`;
-
+  const cacheKey = buildCacheKey('github:profile', { username: login });
   const factory = () => fetchGithubSnapshotInternal(username, explicitToken);
-
-  if (refresh) {
-    const fresh = await factory();
-    await cache.set(cacheKey, fresh, getTtlFor('github')).catch(() => {});
-    return fresh;
-  }
-
-  return cache.getOrSet<GithubSnapshot>(cacheKey, factory, getTtlFor('github'));
+  return cached<GithubSnapshot>(cacheKey, getTtlFor('github'), false, factory, { refresh });
 }
 
 export function isGithubRateLimitError(err: unknown): boolean {

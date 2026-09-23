@@ -1,4 +1,4 @@
-# Testing Skill — Meeting Prep Assistant
+# Testing Skill — BeforeCall
 
 ## Purpose
 Build and maintain comprehensive test suite: unit, API, integration, E2E.

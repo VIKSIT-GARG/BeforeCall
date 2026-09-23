@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { meetingUpdateSchema, formatZodError } from '@/lib/validations/meeting';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { sanitizeString, sanitizeUrl } from '@/lib/sanitize';
+import { cached, incrementDataVersion } from '@/lib/cache';
 
 function isValidId(id: string): boolean {
   return typeof id === 'string' && id.length >= 1 && id.length <= 128 && /^[a-z0-9_-]+$/i.test(id);
@@ -18,13 +19,15 @@ export async function GET(
       return NextResponse.json({ success: false, error: 'Invalid meeting id' }, { status: 400 });
     }
 
-    const meeting = await prisma.meeting.findUnique({
-      where: { id },
-      include: {
-        attendees: { include: { profile: true } },
-        research: true,
-        brief: true,
-      },
+    const meeting = await cached(`db:meeting:${id}`, 0, 'meeting', async () => {
+      return prisma.meeting.findUnique({
+        where: { id },
+        include: {
+          attendees: { include: { profile: true } },
+          research: true,
+          brief: true,
+        },
+      });
     });
 
     if (!meeting) {
@@ -119,6 +122,7 @@ export async function PATCH(
       data: sanitized,
       include: { attendees: true },
     });
+    await incrementDataVersion('meeting');
 
     return NextResponse.json({ success: true, data: meeting });
   } catch (error) {
@@ -157,6 +161,7 @@ export async function DELETE(
       return NextResponse.json({ success: false, error: 'Invalid meeting id' }, { status: 400 });
     }
     await prisma.meeting.delete({ where: { id } });
+    await incrementDataVersion('meeting');
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting meeting:', error instanceof Error ? error.message : 'Unknown error');

@@ -3,24 +3,24 @@ import "./globals.css"
 import { TooltipProvider } from "@/components/ui/tooltip"
 
 export const metadata: Metadata = {
-  title: "Meeting Prep Assistant — Walk into every meeting prepared",
+  title: "BeforeCall — Walk into every meeting prepared",
   description: "Research the people. Understand the context. Know what to ask. AI-powered meeting preparation that gives you the edge.",
-  keywords: ["meeting preparation", "meeting intelligence", "attendee research", "AI assistant", "business meetings"],
-  authors: [{ name: "Meeting Prep Assistant" }],
-  creator: "Meeting Prep Assistant",
-  publisher: "Meeting Prep Assistant",
+  keywords: ["BeforeCall", "meeting preparation", "meeting intelligence", "attendee research", "AI assistant", "business meetings"],
+  authors: [{ name: "BeforeCall" }],
+  creator: "BeforeCall",
+  publisher: "BeforeCall",
   robots: "index, follow",
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://meeting-prep-assistant.com",
-    title: "Meeting Prep Assistant — Walk into every meeting prepared",
+    url: "https://beforecall.onrender.com",
+    title: "BeforeCall — Walk into every meeting prepared",
     description: "Research the people. Understand the context. Know what to ask.",
-    siteName: "Meeting Prep Assistant",
+    siteName: "BeforeCall",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Meeting Prep Assistant",
+    title: "BeforeCall",
     description: "Walk into every meeting prepared. AI-powered meeting intelligence.",
   },
 }

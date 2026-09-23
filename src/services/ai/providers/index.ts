@@ -1,15 +1,20 @@
 import type { LLMProvider, ProviderName } from './types';
+import { NvidiaProvider } from './nvidia';
 import { OllamaProvider } from './ollama';
-import { ProductionProvider } from './production';
 import { MockProvider } from './mock';
 
 let cachedProvider: LLMProvider | null = null;
 let cachedName: ProviderName | null = null;
 
 export function getProviderName(): ProviderName {
-  const raw = (process.env.LLM_PROVIDER ?? 'ollama').toLowerCase().trim();
-  if (raw === 'production' || raw === 'prod') return 'production';
+  const raw = (process.env.LLM_PROVIDER ?? '').toLowerCase().trim();
+  const hasNvidiaKey = !!(process.env.NVIDIA_API_KEY || process.env.PRODUCTION_LLM_API_KEY || process.env.OPENAI_API_KEY);
   if (raw === 'mock') return 'mock';
+  if (raw === 'ollama') return 'ollama';
+  if (raw === 'production' || raw === 'prod' || raw === 'nvidia') {
+    return 'production';
+  }
+  if (hasNvidiaKey) return 'production';
   return 'ollama';
 }
 
@@ -20,14 +25,16 @@ export function getLLMProvider(): LLMProvider {
   let provider: LLMProvider;
   switch (name) {
     case 'production':
-      provider = new ProductionProvider();
+      provider = new NvidiaProvider();
+      break;
+    case 'ollama':
+      provider = new OllamaProvider();
       break;
     case 'mock':
       provider = new MockProvider();
       break;
-    case 'ollama':
     default:
-      provider = new OllamaProvider();
+      provider = new NvidiaProvider();
       break;
   }
   cachedProvider = provider;
@@ -48,6 +55,6 @@ export function resetLLMProvider(): void {
 }
 
 export type { LLMProvider, LLMCallOptions, ProviderName } from './types';
+export { NvidiaProvider } from './nvidia';
 export { OllamaProvider } from './ollama';
-export { ProductionProvider } from './production';
 export { MockProvider } from './mock';

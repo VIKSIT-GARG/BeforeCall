@@ -1,4 +1,4 @@
-# Research Skill — Meeting Prep Assistant
+# Research Skill — BeforeCall
 
 ## Purpose
 Build reliable, cached, attributed web research pipeline using Tavily.

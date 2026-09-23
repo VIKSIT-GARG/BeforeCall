@@ -1,5 +1,5 @@
 /**
- * Tavily Guardrails — central security & reliability controls for meeting-prep-assistant.
+ * Tavily Guardrails — central security & reliability controls for BeforeCall.
  *
  * SECURITY NOTICE — Untrusted content
  * ---------------------------------------------------------------------------

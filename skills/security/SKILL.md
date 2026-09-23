@@ -1,4 +1,4 @@
-# Security Skill — Meeting Prep Assistant
+# Security Skill — BeforeCall
 
 ## Purpose
 Ensure application security: secrets, injection, authorization, prompt injection defense.

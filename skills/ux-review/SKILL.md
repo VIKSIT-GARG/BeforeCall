@@ -1,4 +1,4 @@
-# UX Review Skill — Meeting Prep Assistant
+# UX Review Skill — BeforeCall
 
 ## Purpose
 Evaluate product from user perspective: can someone prepare for a meeting in 5 minutes?

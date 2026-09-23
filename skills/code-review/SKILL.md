@@ -1,4 +1,4 @@
-# Code Review Skill — Meeting Prep Assistant
+# Code Review Skill — BeforeCall
 
 ## Purpose
 Ruthless code review focusing on correctness, security, architecture, and maintainability.

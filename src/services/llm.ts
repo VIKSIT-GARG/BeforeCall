@@ -25,6 +25,8 @@ import {
   TEMPERATURE_FACTUAL,
   TEMPERATURE_CREATIVE,
 } from './ai/prompts';
+import { cached, buildCacheKey, getTtlFor } from '@/lib/cache';
+import { extractTopicsLocally } from '@/lib/cheap-routing';
 
 type ResearchSnippet = { title: string; url: string; snippet: string; source: string; credibility: string };
 
@@ -69,30 +71,38 @@ Return JSON with this structure:
   "sources": [{"title": "string", "url": "string", "type": "professional|news|official|social|other", "credibility": "high|medium|low"}]
 }`;
 
-  try {
-    const provider = getLLMProvider();
-    const data = await provider.generateJSON(prompt, attendeeProfileSchema, {
-      temperature: TEMPERATURE_FACTUAL,
-      systemPrompt: ATTENDEE_PROFILE_SYSTEM,
-    });
-    if (!data) return null;
-    // Normalize Zod output (defaults/nullable) to domain type
-    const normalized: AttendeeProfile = {
-      currentRole: data.currentRole ?? undefined,
-      currentCompany: data.currentCompany ?? undefined,
-      previousRoles: data.previousRoles ?? [],
-      expertise: data.expertise ?? [],
-      notableProjects: data.notableProjects ?? [],
-      interests: data.interests ?? [],
-      bio: data.bio ?? undefined,
-      avatarUrl: data.avatarUrl ?? undefined,
-      sources: (data.sources ?? []) as Source[],
-    };
-    return normalized;
-  } catch (error) {
-    console.error('synthesizeAttendeeProfile error:', error);
-    return null;
-  }
+  const cacheKey = buildCacheKey('llm:attendee', {
+    name: name.trim().toLowerCase(),
+    company: (company ?? '').trim().toLowerCase(),
+    sources: safeResults.map((r) => r.url),
+  });
+
+  return cached<AttendeeProfile | null>(cacheKey, getTtlFor('extraction'), false, async () => {
+    try {
+      const provider = getLLMProvider();
+      const data = await provider.generateJSON(prompt, attendeeProfileSchema, {
+        temperature: TEMPERATURE_FACTUAL,
+        systemPrompt: ATTENDEE_PROFILE_SYSTEM,
+      });
+      if (!data) return null;
+      // Normalize Zod output (defaults/nullable) to domain type
+      const normalized: AttendeeProfile = {
+        currentRole: data.currentRole ?? undefined,
+        currentCompany: data.currentCompany ?? undefined,
+        previousRoles: data.previousRoles ?? [],
+        expertise: data.expertise ?? [],
+        notableProjects: data.notableProjects ?? [],
+        interests: data.interests ?? [],
+        bio: data.bio ?? undefined,
+        avatarUrl: data.avatarUrl ?? undefined,
+        sources: (data.sources ?? []) as Source[],
+      };
+      return normalized;
+    } catch (error) {
+      console.error('synthesizeAttendeeProfile error:', error);
+      return null;
+    }
+  });
 }
 
 export async function synthesizeCompanyResearch(
@@ -119,26 +129,33 @@ Return JSON with this structure:
   "sources": [{"title": "string", "url": "string", "type": "official|news|professional|social|other", "credibility": "high|medium|low"}]
 }`;
 
-  try {
-    const provider = getLLMProvider();
-    const data = await provider.generateJSON(prompt, companyResearchSchema, {
-      temperature: TEMPERATURE_FACTUAL,
-      systemPrompt: COMPANY_RESEARCH_SYSTEM,
-    });
-    if (!data) return null;
-    const normalized: CompanyResearch = {
-      summary: data.summary,
-      recentNews: data.recentNews ?? [],
-      products: data.products ?? [],
-      keyPeople: data.keyPeople ?? [],
-      insights: data.insights ?? undefined,
-      sources: (data.sources ?? []) as Source[],
-    };
-    return normalized;
-  } catch (error) {
-    console.error('synthesizeCompanyResearch error:', error);
-    return null;
-  }
+  const cacheKey = buildCacheKey('llm:company', {
+    company: companyName.trim().toLowerCase(),
+    sources: safeResults.map((r) => r.url),
+  });
+
+  return cached<CompanyResearch | null>(cacheKey, getTtlFor('company'), false, async () => {
+    try {
+      const provider = getLLMProvider();
+      const data = await provider.generateJSON(prompt, companyResearchSchema, {
+        temperature: TEMPERATURE_FACTUAL,
+        systemPrompt: COMPANY_RESEARCH_SYSTEM,
+      });
+      if (!data) return null;
+      const normalized: CompanyResearch = {
+        summary: data.summary,
+        recentNews: data.recentNews ?? [],
+        products: data.products ?? [],
+        keyPeople: data.keyPeople ?? [],
+        insights: data.insights ?? undefined,
+        sources: (data.sources ?? []) as Source[],
+      };
+      return normalized;
+    } catch (error) {
+      console.error('synthesizeCompanyResearch error:', error);
+      return null;
+    }
+  });
 }
 
 export async function synthesizeTopicBriefs(
@@ -175,25 +192,33 @@ Return JSON array with this structure:
   }
 ]`;
 
-  try {
-    const provider = getLLMProvider();
-    const data = await provider.generateJSON(prompt, topicBriefsSchema, {
-      temperature: TEMPERATURE_FACTUAL,
-      systemPrompt: TOPIC_BRIEFS_SYSTEM,
-    });
-    if (!data) return [];
-    return (data as unknown as TopicBrief[]).map((b) => ({
-      topic: b.topic,
-      context: b.context,
-      recentDevelopments: b.recentDevelopments,
-      whyItMatters: b.whyItMatters,
-      discussionAngle: b.discussionAngle,
-      sources: (b.sources ?? []) as Source[],
-    }));
-  } catch (error) {
-    console.error('synthesizeTopicBriefs error:', error);
-    return [];
-  }
+  const cacheKey = buildCacheKey('llm:topic_briefs', {
+    topics: topics.map((t) => t.trim().toLowerCase()).sort(),
+    context: ctx,
+    sources: safeResults.map((r) => r.url),
+  });
+
+  return cached<TopicBrief[]>(cacheKey, getTtlFor('company'), false, async () => {
+    try {
+      const provider = getLLMProvider();
+      const data = await provider.generateJSON(prompt, topicBriefsSchema, {
+        temperature: TEMPERATURE_FACTUAL,
+        systemPrompt: TOPIC_BRIEFS_SYSTEM,
+      });
+      if (!data) return [];
+      return (data as unknown as TopicBrief[]).map((b) => ({
+        topic: b.topic,
+        context: b.context,
+        recentDevelopments: b.recentDevelopments,
+        whyItMatters: b.whyItMatters,
+        discussionAngle: b.discussionAngle,
+        sources: (b.sources ?? []) as Source[],
+      }));
+    } catch (error) {
+      console.error('synthesizeTopicBriefs error:', error);
+      return [];
+    }
+  });
 }
 
 export async function generateMeetingBrief(
@@ -285,27 +310,38 @@ Return JSON with this structure:
 }
 
 export async function extractMeetingTopics(agenda: string, description: string): Promise<string[]> {
+  // Step 4: Cheap stuff before expensive stuff
+  // If agenda has structured numbered/bulleted items or is empty, resolve locally in 0ms!
+  const localTopics = extractTopicsLocally(agenda, description);
+  if (localTopics !== null) {
+    return localTopics;
+  }
+
   const safeAgenda = (agenda || '').slice(0, 2000);
   const safeDesc = (description || '').slice(0, 2000);
 
-  const prompt = `Extract the key discussion topics from this meeting agenda and description.
+  const cacheKey = buildCacheKey('llm:extract_topics', { agenda: safeAgenda, description: safeDesc });
+
+  return cached<string[]>(cacheKey, getTtlFor('extraction'), false, async () => {
+    const prompt = `Extract the key discussion topics from this meeting agenda and description.
 
 Agenda: ${safeAgenda || 'Not provided'}
 Description: ${safeDesc || 'Not provided'}
 
 Return a JSON array of topic strings. Focus on specific, discussable topics. Max 10 topics.`;
 
-  try {
-    const provider = getLLMProvider();
-    const data = await provider.generateJSON(prompt, topicsArraySchema, {
-      temperature: TEMPERATURE_FACTUAL,
-      systemPrompt: EXTRACT_TOPICS_SYSTEM,
-    });
-    if (!data) return [];
-    // Enforce max 10 and non-empty strings
-    return data.filter((t) => typeof t === 'string' && t.trim().length > 0).slice(0, 10);
-  } catch (error) {
-    console.error('extractMeetingTopics error:', error);
-    return [];
-  }
+    try {
+      const provider = getLLMProvider();
+      const data = await provider.generateJSON(prompt, topicsArraySchema, {
+        temperature: TEMPERATURE_FACTUAL,
+        systemPrompt: EXTRACT_TOPICS_SYSTEM,
+      });
+      if (!data) return [];
+      // Enforce max 10 and non-empty strings
+      return data.filter((t) => typeof t === 'string' && t.trim().length > 0).slice(0, 10);
+    } catch (error) {
+      console.error('extractMeetingTopics error:', error);
+      return [];
+    }
+  });
 }

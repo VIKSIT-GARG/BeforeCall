@@ -14,11 +14,12 @@ import {
 } from '@/lib/tavily-guardrails';
 import { createNotification } from '@/lib/notifications';
 import type { StreamEvent } from '@/lib/stream';
-import { cache, getTtlFor } from '@/lib/cache';
+import { cache, getTtlFor, cached, buildCacheKey, incrementDataVersion } from '@/lib/cache';
 import { createLimiter } from '@/lib/semaphore';
 import { Benchmark } from '@/lib/benchmark';
 import { globalBudget, BUDGET } from '@/lib/budget';
 import { tavilyCircuitBreaker } from '@/lib/circuit-breaker';
+import { isGenericOrNonCompany, isPlaceholderAttendee } from '@/lib/cheap-routing';
 
 export interface ResearchProgress {
   stage: 'extracting' | 'attendees' | 'companies' | 'topics' | 'synthesizing' | 'complete' | 'error';
@@ -87,21 +88,9 @@ async function cachedSynthesizeAttendeeProfile(
   results: Array<{ title: string; url: string; snippet: string; source: string; credibility: string }>,
   refresh?: boolean
 ): Promise<Awaited<ReturnType<typeof synthesizeAttendeeProfile>>> {
-  // Cache key includes name+company+results length/content hash (deduped)
   const contentHash = hashForLLM(results.slice(0, 2).map((r) => r.url).join('|') + `|${results.length}`);
   const key = `llm:attendee:${fnvHash(`${name.toLowerCase()}|${(company ?? '').toLowerCase()}|${contentHash}`)}`;
-  if (!refresh) {
-    const cached = await cache.get<Awaited<ReturnType<typeof synthesizeAttendeeProfile>>>(key);
-    if (cached) {
-      console.info(`[cache] LLM attendee hit: ${name}`);
-      return cached;
-    }
-  }
-  const profile = await synthesizeAttendeeProfile(name, company, results);
-  if (profile) {
-    await cache.set(key, profile, getTtlFor('identity')).catch(() => {});
-  }
-  return profile;
+  return cached(key, getTtlFor('identity'), false, () => synthesizeAttendeeProfile(name, company, results), { refresh });
 }
 
 async function cachedSynthesizeCompanyResearch(
@@ -111,18 +100,7 @@ async function cachedSynthesizeCompanyResearch(
 ): Promise<Awaited<ReturnType<typeof synthesizeCompanyResearch>>> {
   const contentHash = hashForLLM(results.slice(0, 2).map((r) => r.url).join('|') + `|${results.length}`);
   const key = `company:research:${fnvHash(`${company.toLowerCase()}|${contentHash}`)}`;
-  if (!refresh) {
-    const cached = await cache.get<Awaited<ReturnType<typeof synthesizeCompanyResearch>>>(key);
-    if (cached) {
-      console.info(`[cache] LLM company hit: ${company} — skipping LLM`);
-      return cached;
-    }
-  }
-  const research = await synthesizeCompanyResearch(company, results);
-  if (research) {
-    await cache.set(key, research, getTtlFor('company')).catch(() => {});
-  }
-  return research;
+  return cached(key, getTtlFor('company'), false, () => synthesizeCompanyResearch(company, results), { refresh });
 }
 
 async function cachedSynthesizeTopicBriefs(
@@ -133,18 +111,7 @@ async function cachedSynthesizeTopicBriefs(
 ): Promise<Awaited<ReturnType<typeof synthesizeTopicBriefs>>> {
   const keyRaw = `${topics.join('|').toLowerCase()}|${hashForLLM(results.slice(0, 2).map((r) => r.url).join('|'))}`;
   const key = `company:topic:${fnvHash(keyRaw)}`;
-  if (!refresh) {
-    const cached = await cache.get<Awaited<ReturnType<typeof synthesizeTopicBriefs>>>(key);
-    if (cached) {
-      console.info(`[cache] LLM topic hit: ${topics.join(',').slice(0, 40)} — skipping LLM`);
-      return cached;
-    }
-  }
-  const briefs = await synthesizeTopicBriefs(topics, context, results);
-  if (briefs && briefs.length) {
-    await cache.set(key, briefs, getTtlFor('company')).catch(() => {});
-  }
-  return briefs;
+  return cached(key, getTtlFor('company'), false, () => synthesizeTopicBriefs(topics, context, results), { refresh });
 }
 
 // Budget helper: already enforced in research.ts, but pipeline also checks before launching
@@ -209,10 +176,10 @@ export async function runResearchPipeline(
       _id: a.id,
     }));
 
-    // Host not researched as external (spec §8)
-    const attendeesFiltered = allAttendeesRaw.filter(a => !isHostAttendee(a, meeting.hostName, meeting.hostEmail));
+    // Host not researched as external (spec §8), and placeholder attendees filtered locally
+    const attendeesFiltered = allAttendeesRaw.filter(a => !isHostAttendee(a, meeting.hostName, meeting.hostEmail) && !isPlaceholderAttendee(a.name));
     if (attendeesFiltered.length < allAttendeesRaw.length) {
-      console.info(`[planner] filtered host attendee: ${allAttendeesRaw.length - attendeesFiltered.length} excluded`);
+      console.info(`[planner] filtered host/placeholder attendees: ${allAttendeesRaw.length - attendeesFiltered.length} excluded`);
     }
 
     // Deduplicate attendees by name+company (smart planner: dedupe queries)
@@ -401,7 +368,8 @@ export async function runResearchPipeline(
     onProgress?.({ stage: 'companies', message: 'Researching companies...', progress: 50 });
 
     // Companies + Topics parallelization: companies alongside topics where independent (same level)
-    const uniqueCompanies = Array.from(new Set(meetingInput.attendees.map(a => a.company).filter(Boolean) as string[]));
+    // Cheap local logic: filter out generic / personal / email-domain companies
+    const uniqueCompanies = Array.from(new Set(meetingInput.attendees.map(a => a.company).filter(c => c && !isGenericOrNonCompany(c)) as string[]));
     // Smart planner: dedupe already done, but log
     if (uniqueCompanies.length) console.info(`[planner] unique companies: ${uniqueCompanies.join(', ')}`);
     const companyResearch: NonNullable<Awaited<ReturnType<typeof synthesizeCompanyResearch>>>[] = [];
@@ -583,6 +551,7 @@ export async function runResearchPipeline(
           version: { increment: 1 },
         },
       });
+      await incrementDataVersion('brief');
       bench.end('db:brief');
       try { console.timeEnd('db:brief'); } catch {}
     }
@@ -593,6 +562,7 @@ export async function runResearchPipeline(
       where: { id: meetingId },
       data: { status: 'COMPLETED' },
     });
+    await incrementDataVersion('meeting');
     bench.end('db:complete');
     try { console.timeEnd('db:complete'); } catch {}
 
@@ -632,6 +602,7 @@ export async function runResearchPipeline(
       where: { id: meetingId },
       data: { status: 'DRAFT' },
     }).catch(() => {});
+    await incrementDataVersion('meeting');
 
     emit({ type: 'stage', stage: 'error', status: 'error', message: error instanceof Error ? error.message : 'Research failed' });
     emit({ type: 'error', message: error instanceof Error ? error.message : 'Research failed' });
@@ -657,24 +628,28 @@ export async function runResearchPipeline(
 }
 
 export async function getMeetingBrief(meetingId: string) {
-  console.time('db:getMeetingBrief');
-  const res = await prisma.brief.findUnique({ where: { meetingId } });
-  try { console.timeEnd('db:getMeetingBrief'); } catch {}
-  return res;
+  return cached(`db:brief:${meetingId}`, 0, 'brief', async () => {
+    console.time('db:getMeetingBrief');
+    const res = await prisma.brief.findUnique({ where: { meetingId } });
+    try { console.timeEnd('db:getMeetingBrief'); } catch {}
+    return res;
+  });
 }
 
 export async function getMeetingWithResearch(meetingId: string) {
-  console.time('db:getMeetingWithResearch');
-  const res = await prisma.meeting.findUnique({
-    where: { id: meetingId },
-    include: {
-      attendees: { include: { profile: true } },
-      research: true,
-      brief: true,
-    },
+  return cached(`db:meeting:${meetingId}`, 0, 'meeting', async () => {
+    console.time('db:getMeetingWithResearch');
+    const res = await prisma.meeting.findUnique({
+      where: { id: meetingId },
+      include: {
+        attendees: { include: { profile: true } },
+        research: true,
+        brief: true,
+      },
+    });
+    try { console.timeEnd('db:getMeetingWithResearch'); } catch {}
+    return res;
   });
-  try { console.timeEnd('db:getMeetingWithResearch'); } catch {}
-  return res;
 }
 
 /**

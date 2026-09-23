@@ -1,4 +1,4 @@
-# AGENTS.md — Meeting Prep Assistant Production Operating Protocol
+# AGENTS.md — BeforeCall Production Operating Protocol
 
 > **System Profile:** CachyOS Linux (Kernel 6.13+ cachyos) | Niri Wayland Compositor | Ollama Local Serving (RTX 5060 Laptop 8GB + 30GB RAM)  
 > **Workspace Scope:** `/home/viksit/Projects/meeting-prep-assistant`  
@@ -8,7 +8,7 @@
 
 ## 1. PROJECT OVERVIEW
 
-### Product: Meeting Prep Assistant
+### Product: BeforeCall
 
 **Primary User Problem:** Professionals walk into meetings unprepared because researching attendees, companies, and topics takes too long and yields scattered, unverified information.
 

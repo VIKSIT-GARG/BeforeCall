@@ -1,4 +1,4 @@
-# AI Skill — Meeting Prep Assistant
+# AI Skill — BeforeCall
 
 ## Purpose
 Build reliable, validated LLM synthesis with provider abstraction and hallucination prevention.

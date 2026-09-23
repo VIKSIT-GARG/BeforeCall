@@ -8,8 +8,9 @@
 import 'server-only';
 import { normalizeAttendeeInput, identityHash, normalizeName } from '@/lib/identity';
 import type { GithubSnapshot } from '@/services/github';
-import { cache, getTtlFor } from '@/lib/cache';
+import { cache, getTtlFor, cached, buildCacheKey } from '@/lib/cache';
 import { createLimiter } from '@/lib/semaphore';
+import { cleanAndValidateGithubUsername } from '@/lib/cheap-routing';
 
 export type ConfidenceLevel = 'HIGH' | 'MEDIUM' | 'LOW' | 'UNRESOLVED';
 
@@ -212,45 +213,56 @@ export async function resolveAttendeeIdentity(
     };
   }
 
-  // Identity cache key (dedup) — 24h
-  const hash = identityHash(normalized);
-  const cacheKey = `identity:${hash}`;
-
-  // Check identity cache first (if we have a cached ResolvedIdentity) — bypass on refresh
-  if (!refresh) {
-    const cached = await cache.get<ResolvedIdentity>(cacheKey);
-    if (cached) return cached;
+  // Clean and validate GitHub username locally before any external calls
+  if (normalized.githubUsername) {
+    normalized.githubUsername = cleanAndValidateGithubUsername(normalized.githubUsername);
   }
 
-  // Fetch GitHub snapshot if username present (cached 24h via github:profile:username)
-  let githubSnapshot: GithubSnapshot | null = null;
-  if (normalized.githubUsername) {
-    try {
-      // Use lazy import to avoid circular
-      const { fetchGithubSnapshot } = await import('@/services/github');
-      // Use github:profile:username cache (aligned)
-      githubSnapshot = await fetchGithubSnapshot(normalized.githubUsername!, process.env.GITHUB_TOKEN, { refresh });
-      if (githubSnapshot) {
+  // Identity cache key (dedup) — 24h
+  const hash = identityHash(normalized);
+  const cacheKey = buildCacheKey('identity', { hash, normalized });
+
+  return cached<ResolvedIdentity>(cacheKey, getTtlFor('identity'), false, async () => {
+    // Parallelize independent external calls: GitHub lookup + Web search
+    const shouldFetchGithub = !!normalized.githubUsername;
+    const shouldFetchWeb = hasName && (hasCompany || hasRole || !hasGithub);
+    const shouldFetchLightWeb = hasGithub && !shouldFetchWeb;
+
+    let githubSnapshot: GithubSnapshot | null = null;
+    let webEvidence: Evidence[] = [];
+
+    const [githubSettled, webSettled] = await Promise.allSettled([
+      shouldFetchGithub
+        ? (async () => {
+            const { fetchGithubSnapshot } = await import('@/services/github');
+            return fetchGithubSnapshot(normalized.githubUsername!, process.env.GITHUB_TOKEN, { refresh });
+          })()
+        : Promise.resolve(null),
+      shouldFetchWeb || shouldFetchLightWeb
+        ? fetchWebEvidence(normalized.name, normalized.company, refresh)
+        : Promise.resolve([]),
+    ]);
+
+    if (githubSettled.status === 'fulfilled' && githubSettled.value) {
+      githubSnapshot = githubSettled.value;
+      evidence.push({
+        fact: `GitHub profile: ${githubSnapshot.name ?? githubSnapshot.login} — ${githubSnapshot.bio?.slice(0, 100) ?? `${githubSnapshot.publicRepos} repos, ${githubSnapshot.followers} followers`}`,
+        sourceUrl: githubSnapshot.profileUrl,
+        sourceType: 'github',
+        confidence: 'HIGH',
+        date: evidenceDate(),
+      });
+      if (githubSnapshot.location) {
         evidence.push({
-          fact: `GitHub profile: ${githubSnapshot.name ?? githubSnapshot.login} — ${githubSnapshot.bio?.slice(0, 100) ?? `${githubSnapshot.publicRepos} repos, ${githubSnapshot.followers} followers`}`,
+          fact: `Location: ${githubSnapshot.location}`,
           sourceUrl: githubSnapshot.profileUrl,
           sourceType: 'github',
-          confidence: 'HIGH',
+          confidence: 'MEDIUM',
           date: evidenceDate(),
         });
-        if (githubSnapshot.location) {
-          evidence.push({
-            fact: `Location: ${githubSnapshot.location}`,
-            sourceUrl: githubSnapshot.profileUrl,
-            sourceType: 'github',
-            confidence: 'MEDIUM',
-            date: evidenceDate(),
-          });
-        }
       }
-    } catch (e) {
-      // Rate-limit or not found — evidence as low confidence, do not throw
-      const msg = e instanceof Error ? e.message.slice(0, 120) : 'GitHub fetch failed';
+    } else if (githubSettled.status === 'rejected' && shouldFetchGithub) {
+      const msg = githubSettled.reason instanceof Error ? githubSettled.reason.message.slice(0, 120) : 'GitHub fetch failed';
       evidence.push({
         fact: `GitHub lookup failed: ${msg}`,
         sourceUrl: `https://github.com/${normalized.githubUsername}`,
@@ -258,24 +270,17 @@ export async function resolveAttendeeIdentity(
         confidence: 'LOW',
         date: evidenceDate(),
       });
-      githubSnapshot = null;
     }
-  }
 
-  // Candidate search via Tavily if no strong github signal or to cross-validate
-  let webEvidence: Evidence[] = [];
-  // Always attempt web evidence when we have name+company or name+role for cross-source consistency
-  // Smart planner: if we already have HIGH signals from provided fields + github, we still fetch light web evidence but it may be cached (tavily:search:person 24h)
-  if (hasName && (hasCompany || hasRole || !hasGithub)) {
-    webEvidence = await fetchWebEvidence(normalized.name, normalized.company, refresh);
-    evidence.push(...webEvidence);
-  } else if (hasGithub && githubSnapshot) {
-    // Still fetch light web evidence for consistency check (cached)
-    const light = await fetchWebEvidence(normalized.name, normalized.company, refresh);
-    webEvidence = light;
-    // Only push if light has results, to avoid noise
-    if (light.length) evidence.push(...light);
-  }
+    if (webSettled.status === 'fulfilled' && webSettled.value) {
+      if (shouldFetchWeb) {
+        webEvidence = webSettled.value;
+        evidence.push(...webEvidence);
+      } else if (shouldFetchLightWeb && webSettled.value.length) {
+        webEvidence = webSettled.value;
+        evidence.push(...webEvidence);
+      }
+    }
 
   const cc = crossConsistent(normalized.company, githubSnapshot, webEvidence);
   const confidence = computeConfidence({
@@ -318,11 +323,8 @@ export async function resolveAttendeeIdentity(
     needsMoreInfo,
     message,
   };
-
-  // Cache resolved identity for 24h (even UNRESOLVED, to avoid hammering Tavily/GitHub) — also company:identity 24h semantics
-  await cache.set(cacheKey, resolved, getTtlFor('identity')).catch(() => {});
-
   return resolved;
+}, { refresh });
 }
 
 /** Batch helper for pipeline — now bounded parallel (concurrency 3) */

@@ -35,7 +35,6 @@ export class OllamaProvider implements LLMProvider {
         const result = parseAndValidate(lastRaw, schema);
         if (result.success) return result.data;
 
-        // Validation failed → repair prompt for next attempt
         if (attempt < MAX_RETRIES - 1) {
           currentPrompt = buildRepairPrompt(prompt, lastRaw, result.error);
           continue;
@@ -43,11 +42,9 @@ export class OllamaProvider implements LLMProvider {
         console.warn('[OllamaProvider] generateJSON validation failed after retries:', result.error);
         return null;
       } catch (error) {
-        // Network / ollama error: retry with same prompt (transient)
         const msg = error instanceof Error ? error.message : String(error);
         console.warn(`[OllamaProvider] generateJSON attempt ${attempt + 1} error:`, msg);
         if (attempt < MAX_RETRIES - 1) {
-          // For hard JSON errors, keep retrying; last attempt returns null
           currentPrompt = buildRepairPrompt(prompt, lastRaw || msg, msg);
           continue;
         }
@@ -85,4 +82,37 @@ export class OllamaProvider implements LLMProvider {
     }
     return null;
   }
+
+  async *generateTextStream(prompt: string, options?: LLMCallOptions): AsyncGenerator<string, void, unknown> {
+    const systemPrompt = options?.systemPrompt;
+    const temperature = options?.temperature ?? 0.4;
+    try {
+      const stream = await this.ollama.generate({
+        model: this.model,
+        prompt,
+        system: systemPrompt,
+        stream: true,
+        options: { temperature, top_p: 0.9 },
+      });
+      for await (const chunk of stream) {
+        if (chunk.response) {
+          yield chunk.response;
+        }
+      }
+    } catch (error) {
+      console.error('[OllamaProvider] generateTextStream error:', error);
+    }
+  }
+
+  async healthCheck(): Promise<{ provider: string; model: string; status: 'healthy' | 'unhealthy'; latencyMs?: number; error?: string }> {
+    const start = Date.now();
+    try {
+      await this.ollama.list();
+      return { provider: 'ollama', model: this.model, status: 'healthy', latencyMs: Date.now() - start };
+    } catch (e: any) {
+      return { provider: 'ollama', model: this.model, status: 'unhealthy', error: e.message, latencyMs: Date.now() - start };
+    }
+  }
 }
+
+export default OllamaProvider;

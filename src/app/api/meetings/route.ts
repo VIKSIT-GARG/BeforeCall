@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { meetingCreateSchema, formatZodError } from '@/lib/validations/meeting';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { sanitizeString, sanitizeUrl } from '@/lib/sanitize';
+import { incrementDataVersion } from '@/lib/cache';
 
 export async function GET() {
   try {
@@ -121,6 +122,7 @@ export async function POST(request: NextRequest) {
       },
       include: { attendees: true },
     });
+    await incrementDataVersion('meeting');
     try { console.timeEnd('api:meetings:create'); } catch {}
     return NextResponse.json({ success: true, data: meeting });
   } catch (error) {

@@ -1,4 +1,4 @@
-# Frontend Skill — Meeting Prep Assistant
+# Frontend Skill — BeforeCall
 
 ## Purpose
 Build premium, accessible, responsive React/Next.js interfaces using the project's design system.

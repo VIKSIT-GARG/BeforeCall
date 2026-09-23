@@ -1,4 +1,4 @@
-# Backend Skill — Meeting Prep Assistant
+# Backend Skill — BeforeCall
 
 ## Purpose
 Build robust, validated, secure API routes and server actions with proper error handling.

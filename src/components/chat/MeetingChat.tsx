@@ -3,7 +3,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Send, Loader2, Sparkles, ExternalLink } from "lucide-react"
+import { Send, Loader2, ExternalLink } from "lucide-react"
 
 const SUGGESTED = [
   "What should I ask first?",
@@ -28,19 +28,84 @@ export function MeetingChat({ meetingId, briefReady }: { meetingId: string; brie
     setInput("")
     const newMsgs: typeof messages = [...messages, { role: 'user' as const, content: q }]
     setMessages(newMsgs)
+    // placeholder for streaming assistant message
+    const assistantIdx = newMsgs.length
+    setMessages(prev => [...prev, { role: 'assistant', content: "" }])
     setLoading(true)
     try {
-      const res = await fetch(`/api/chat/${meetingId}`, {
+      // Prefer streaming (fast first token) — fallback to JSON
+      const res = await fetch(`/api/chat/${meetingId}?stream=1`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: q, history: newMsgs.slice(-6) }),
+        headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
+        body: JSON.stringify({ message: q, history: newMsgs.slice(-6), stream: true }),
       })
-      const d = await res.json()
-      if (!d.success) throw new Error(d.error || 'Chat failed')
-      setMessages([...newMsgs, { role: 'assistant', content: d.data.answer, sources: d.data.sources }])
+      const contentType = res.headers.get('content-type') || ''
+      if (res.ok && contentType.includes('text/event-stream') && res.body) {
+        const reader = res.body.getReader()
+        const decoder = new TextDecoder()
+        let buffer = ''
+        let acc = ''
+        let sources: any[] | undefined
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          buffer += decoder.decode(value, { stream: true })
+          const parts = buffer.split('\n\n')
+          buffer = parts.pop() || ''
+          for (const part of parts) {
+            const lines = part.split('\n')
+            for (const line of lines) {
+              if (!line.startsWith('data:')) continue
+              const data = line.slice(5).trim()
+              if (!data) continue
+              try {
+                const json = JSON.parse(data)
+                if (json.token) {
+                  acc += json.token
+                  setMessages(prev => {
+                    const copy = [...prev]
+                    copy[assistantIdx] = { role: 'assistant', content: acc, sources }
+                    return copy
+                  })
+                }
+                if (json.done) {
+                  sources = json.sources
+                  setMessages(prev => {
+                    const copy = [...prev]
+                    copy[assistantIdx] = { role: 'assistant', content: acc, sources }
+                    return copy
+                  })
+                }
+                if (json.error) throw new Error(json.error)
+              } catch {}
+            }
+          }
+        }
+        if (!acc) {
+          throw new Error('No answer received from assistant')
+        }
+      } else {
+        // Non-stream JSON
+        const d = await res.json()
+        if (!d.success) throw new Error(d.error || 'Chat failed')
+        setMessages(prev => {
+          const copy = [...prev]
+          copy[assistantIdx] = { role: 'assistant', content: d.data.answer, sources: d.data.sources }
+          return copy
+        })
+      }
     } catch (e: any) {
       setError(e.message || 'Chat failed')
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Could not answer — please try again. Evidence may be limited for this question.' }])
+      setMessages(prev => {
+        const copy = [...prev]
+        // replace placeholder with error
+        if (copy[assistantIdx]?.content === "") {
+          copy[assistantIdx] = { role: 'assistant', content: 'Could not answer — please try again. Evidence may be limited for this question.' }
+        } else {
+          copy.push({ role: 'assistant', content: 'Could not answer — please try again. Evidence may be limited for this question.' })
+        }
+        return copy
+      })
     } finally {
       setLoading(false)
     }

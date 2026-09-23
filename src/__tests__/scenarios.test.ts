@@ -125,7 +125,7 @@ export function buildFallbackBrief(
   };
 }
 
-describe('Meeting Prep — 25 Deterministic Scenarios', () => {
+describe('BeforeCall — Deterministic Scenarios', () => {
   beforeEach(() => {
     resetLLMProvider();
   });

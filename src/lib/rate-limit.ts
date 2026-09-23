@@ -19,6 +19,7 @@ interface RateLimitResult {
 
 // Per-limiter per-IP sliding window store
 const stores: Map<RateLimiterKey, Map<string, number[]>> = new Map();
+const MAX_IPS_PER_STORE = 1000;
 
 function getStore(key: RateLimiterKey): Map<string, number[]> {
   let s = stores.get(key);
@@ -27,6 +28,22 @@ function getStore(key: RateLimiterKey): Map<string, number[]> {
     stores.set(key, s);
   }
   return s;
+}
+
+function pruneStore(store: Map<string, number[]>, windowMs: number, now: number): void {
+  for (const [ip, ts] of Array.from(store.entries())) {
+    const valid = ts.filter((t) => now - t < windowMs);
+    if (valid.length === 0) {
+      store.delete(ip);
+    } else {
+      store.set(ip, valid);
+    }
+  }
+  while (store.size >= MAX_IPS_PER_STORE) {
+    const oldestKey = store.keys().next().value;
+    if (!oldestKey) break;
+    store.delete(oldestKey);
+  }
 }
 
 /**
@@ -56,6 +73,10 @@ export function checkRateLimit(request: NextRequest, limiter: RateLimiterKey): R
   const store = getStore(limiter);
   const now = Date.now();
   const windowStart = now - config.windowMs;
+
+  if (store.size >= MAX_IPS_PER_STORE) {
+    pruneStore(store, config.windowMs, now);
+  }
 
   let timestamps = store.get(ip) || [];
   // prune expired

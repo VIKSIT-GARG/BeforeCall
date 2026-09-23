@@ -1,7 +1,7 @@
 import type { MeetingInput } from '@/types';
 
 /**
- * 25 deterministic meeting scenarios for Meeting Prep Assistant.
+ * Deterministic meeting scenarios for BeforeCall.
  * All data is fictional — no real private individuals.
  * Categories cover happy paths, edge inputs, and failure simulations.
  *

@@ -37,9 +37,10 @@ import {
   credibilityRank,
   NON_RETRYABLE_STATUS,
 } from '@/lib/tavily-guardrails';
-import { cache, getTtlFor } from '@/lib/cache';
+import { cache, getTtlFor, cached, buildCacheKey } from '@/lib/cache';
 import { tavilyCircuitBreaker } from '@/lib/circuit-breaker';
 import { globalBudget, BUDGET } from '@/lib/budget';
+import { isGenericOrNonCompany, isPlaceholderAttendee } from '@/lib/cheap-routing';
 
 const TAVILY_API_BASE = 'https://api.tavily.com';
 const tavilyApiKey = process.env.TAVILY_API_KEY?.trim() || undefined;
@@ -269,52 +270,55 @@ export async function searchWeb(
   }
 
   const clampedMax = clampMaxResults(options.maxResults);
+  const cacheKey = buildCacheKey('tavily:search:web', { query: normalized, ...options, maxResults: clampedMax });
 
-  try {
-    const wire = await executeTavilySearch(normalized, {
-      maxResults: clampedMax,
-      searchDepth: options.searchDepth,
-      includeDomains: options.includeDomains,
-      excludeDomains: options.excludeDomains,
-    });
+  return cached(cacheKey, getTtlFor('tavily'), false, async () => {
+    try {
+      const wire = await executeTavilySearch(normalized, {
+        maxResults: clampedMax,
+        searchDepth: options.searchDepth,
+        includeDomains: options.includeDomains,
+        excludeDomains: options.excludeDomains,
+      });
 
-    if (wire.length === 0) return [];
+      if (wire.length === 0) return [];
 
-    // Map to ResearchResult with source normalization & credibility
-    // UNTRUSTED: wire.title/content are web data — truncated, treated as data only
-    const mapped: ResearchResult[] = wire.map((r, index) => ({
-      title: r.title,
-      url: r.url,
-      snippet: r.content, // already truncated to 500 by validator
-      source: extractDomain(r.url),
-      credibility: assessCredibility(r.url),
-      relevance: r.score > 0 ? r.score : 1 - index * 0.05,
-    }));
+      // Map to ResearchResult with source normalization & credibility
+      // UNTRUSTED: wire.title/content are web data — truncated, treated as data only
+      const mapped: ResearchResult[] = wire.map((r, index) => ({
+        title: r.title,
+        url: r.url,
+        snippet: r.content, // already truncated to 500 by validator
+        source: extractDomain(r.url),
+        credibility: assessCredibility(r.url),
+        relevance: r.score > 0 ? r.score : 1 - index * 0.05,
+      }));
 
-    // Prefer high credibility: stable sort high → low, then by original order / relevance
-    mapped.sort((a, b) => {
-      const ca = credibilityRank(a.credibility);
-      const cb = credibilityRank(b.credibility);
-      if (ca !== cb) return ca - cb;
-      return b.relevance - a.relevance;
-    });
+      // Prefer high credibility: stable sort high → low, then by original order / relevance
+      mapped.sort((a, b) => {
+        const ca = credibilityRank(a.credibility);
+        const cb = credibilityRank(b.credibility);
+        if (ca !== cb) return ca - cb;
+        return b.relevance - a.relevance;
+      });
 
-    // Enforce 10 results + 5k total context caps (defense in depth)
-    const capped = mapped.slice(0, TAVILY_MAX_RESULTS_PER_SEARCH);
-    return enforceTotalContextLimit(capped, TAVILY_TOTAL_CONTEXT_MAX_CHARS);
-  } catch (error) {
-    // Budget or circuit errors are expected caps — not log as error
-    const maybeCircuit = (error as { circuitOpen?: boolean })?.circuitOpen;
-    const maybeBudget = (error as { budgetExhausted?: boolean })?.budgetExhausted;
-    if (maybeCircuit || maybeBudget) {
-      console.warn('[tavily] skipped due to cap/circuit:', (error as Error).message);
+      // Enforce 10 results + 5k total context caps (defense in depth)
+      const capped = mapped.slice(0, TAVILY_MAX_RESULTS_PER_SEARCH);
+      return enforceTotalContextLimit(capped, TAVILY_TOTAL_CONTEXT_MAX_CHARS);
+    } catch (error) {
+      // Budget or circuit errors are expected caps — not log as error
+      const maybeCircuit = (error as { circuitOpen?: boolean })?.circuitOpen;
+      const maybeBudget = (error as { budgetExhausted?: boolean })?.budgetExhausted;
+      if (maybeCircuit || maybeBudget) {
+        console.warn('[tavily] skipped due to cap/circuit:', (error as Error).message);
+        return [];
+      }
+      // Terminal failure — return empty so callers can do partial-failure handling.
+      // Do NOT leak mock data when key is configured (avoids false confidence).
+      console.error('Tavily search error:', error);
       return [];
     }
-    // Terminal failure — return empty so callers can do partial-failure handling.
-    // Do NOT leak mock data when key is configured (avoids false confidence).
-    console.error('Tavily search error:', error);
-    return [];
-  }
+  });
 }
 
 export async function searchCompany(
@@ -323,8 +327,15 @@ export async function searchCompany(
 ): Promise<ResearchResult[]> {
   const refresh = !!opts?.refresh;
   if (!companyName?.trim()) return [];
+
+  // Cheap local short-circuit: skip 4 Tavily searches for generic/placeholder companies
+  if (isGenericOrNonCompany(companyName)) {
+    console.info(`[planner] skipped searchCompany for generic/placeholder company: "${companyName}"`);
+    return [];
+  }
+
   const normalizedKey = companyName.trim().toLowerCase();
-  const cacheKey = tavilyCacheKey('company', normalizedKey);
+  const cacheKey = buildCacheKey('tavily:company', { company: normalizedKey });
 
   const factory = async (): Promise<ResearchResult[]> => {
     const rawQueries = [
@@ -346,15 +357,17 @@ export async function searchCompany(
     }
     const budgetedQueries = remaining < queries.length ? queries.slice(0, remaining) : queries;
 
-    // Partial-failure: each query isolated; aggregate successes
+    // Parallelize independent company queries with Promise.allSettled (concurrency)
     const allResults: ResearchResult[] = [];
-    for (const q of budgetedQueries) {
-      try {
-        const results = await searchWeb(q, { maxResults: 5 });
-        allResults.push(...results);
-      } catch {
-        // Isolated failure — continue to next query
-        console.warn(`[searchCompany] query failed, continuing: ${q}`);
+    const settled = await Promise.allSettled(
+      budgetedQueries.map((q) => searchWeb(q, { maxResults: 5 }))
+    );
+    for (let i = 0; i < settled.length; i++) {
+      const s = settled[i];
+      if (s.status === 'fulfilled') {
+        allResults.push(...s.value);
+      } else {
+        console.warn(`[searchCompany] query failed, continuing: ${budgetedQueries[i]}`, s.reason);
       }
     }
 
@@ -365,15 +378,7 @@ export async function searchCompany(
     return enforceTotalContextLimit(capped15, TAVILY_TOTAL_CONTEXT_MAX_CHARS);
   };
 
-  if (refresh) {
-    const fresh = await factory();
-    // update cache for next time
-    await cache.set(cacheKey, fresh, getTtlFor('tavily')).catch(() => {});
-    return fresh;
-  }
-
-  // Wrap with cache.getOrSet 24h
-  return cache.getOrSet<ResearchResult[]>(cacheKey, factory, getTtlFor('tavily'));
+  return cached<ResearchResult[]>(cacheKey, getTtlFor('company'), false, factory, { refresh });
 }
 
 export async function searchPerson(
@@ -391,8 +396,17 @@ export async function searchPerson(
   }
 
   if (!name?.trim()) return [];
-  const keyRaw = `${name.trim().toLowerCase()}|${(company ?? '').trim().toLowerCase()}`;
-  const cacheKey = tavilyCacheKey('person', keyRaw);
+
+  // Cheap local short-circuit: skip Tavily searches for placeholder names
+  if (isPlaceholderAttendee(name)) {
+    console.info(`[planner] skipped searchPerson for placeholder attendee: "${name}"`);
+    return [];
+  }
+
+  const cacheKey = buildCacheKey('tavily:person', {
+    name: name.trim().toLowerCase(),
+    company: (effectiveCompany ?? '').trim().toLowerCase(),
+  });
 
   const factory = async (): Promise<ResearchResult[]> => {
     const suffix = effectiveCompany ? `${effectiveCompany} ` : '';
@@ -413,13 +427,17 @@ export async function searchPerson(
     }
     const budgetedQueries = remaining < queries.length ? queries.slice(0, remaining) : queries;
 
+    // Parallelize independent attendee queries with Promise.allSettled (concurrency)
     const allResults: ResearchResult[] = [];
-    for (const q of budgetedQueries) {
-      try {
-        const results = await searchWeb(q, { maxResults: 5 });
-        allResults.push(...results);
-      } catch {
-        console.warn(`[searchPerson] query failed, continuing: ${q}`);
+    const settled = await Promise.allSettled(
+      budgetedQueries.map((q) => searchWeb(q, { maxResults: 5 }))
+    );
+    for (let i = 0; i < settled.length; i++) {
+      const s = settled[i];
+      if (s.status === 'fulfilled') {
+        allResults.push(...s.value);
+      } else {
+        console.warn(`[searchPerson] query failed, continuing: ${budgetedQueries[i]}`, s.reason);
       }
     }
 
@@ -429,13 +447,7 @@ export async function searchPerson(
     return enforceTotalContextLimit(capped10, TAVILY_TOTAL_CONTEXT_MAX_CHARS);
   };
 
-  if (refresh) {
-    const fresh = await factory();
-    await cache.set(cacheKey, fresh, getTtlFor('tavily')).catch(() => {});
-    return fresh;
-  }
-
-  return cache.getOrSet<ResearchResult[]>(cacheKey, factory, getTtlFor('tavily'));
+  return cached<ResearchResult[]>(cacheKey, getTtlFor('identity'), false, factory, { refresh });
 }
 
 export async function searchTopic(
@@ -450,8 +462,7 @@ export async function searchTopic(
   // 1 query per topic
   const queries = dedupeAndNormalizeQueries([normalized]).slice(0, MAX_QUERIES_PER_TOPIC);
   if (queries.length === 0) return [];
-  const keyRaw = queries[0].toLowerCase();
-  const cacheKey = tavilyCacheKey('topic', keyRaw);
+  const cacheKey = buildCacheKey('tavily:topic', { query: queries[0] });
 
   const factory = async (): Promise<ResearchResult[]> => {
     const remaining = BUDGET.MAX_TOTAL_TAVILY_QUERIES - globalBudget.getTavilyCount();
@@ -462,13 +473,7 @@ export async function searchTopic(
     return searchWeb(queries[0], { maxResults: TAVILY_MAX_RESULTS_PER_SEARCH, searchDepth: 'advanced' });
   };
 
-  if (refresh) {
-    const fresh = await factory();
-    await cache.set(cacheKey, fresh, getTtlFor('tavily')).catch(() => {});
-    return fresh;
-  }
-
-  return cache.getOrSet<ResearchResult[]>(cacheKey, factory, getTtlFor('tavily'));
+  return cached<ResearchResult[]>(cacheKey, getTtlFor('tavily'), false, factory, { refresh });
 }
 
 // ──────────────────────────────────────────────────────────────────────────────

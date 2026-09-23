@@ -130,4 +130,17 @@ export class MockProvider implements LLMProvider {
     if (!prompt) return null;
     return `Mock response for: ${prompt.slice(0, 120)}`;
   }
+
+  async *generateTextStream(prompt: string, options?: LLMCallOptions): AsyncGenerator<string, void, unknown> {
+    const text = await this.generateText(prompt, options);
+    if (!text) return;
+    const words = text.split(' ');
+    for (let i = 0; i < words.length; i++) {
+      yield (i === 0 ? '' : ' ') + words[i];
+    }
+  }
+
+  async healthCheck(): Promise<{ provider: string; model: string; status: 'healthy' | 'unhealthy'; latencyMs?: number }> {
+    return { provider: 'mock', model: 'mock', status: 'healthy', latencyMs: 0 };
+  }
 }

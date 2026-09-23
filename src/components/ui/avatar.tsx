@@ -16,9 +16,12 @@ const Avatar = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElem
 Avatar.displayName = "Avatar"
 
 const AvatarImage = React.forwardRef<HTMLImageElement, React.ImgHTMLAttributes<HTMLImageElement>>(
-  ({ className, ...props }, ref) => (
+  ({ className, alt = "", ...props }, ref) => (
+    // External avatar URLs from arbitrary origins cannot use next/image without strict hostname allowlisting
+    // eslint-disable-next-line @next/next/no-img-element
     <img
       ref={ref}
+      alt={alt}
       className={cn("aspect-square h-full w-full", className)}
       {...props}
     />

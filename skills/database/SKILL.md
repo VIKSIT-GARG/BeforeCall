@@ -1,4 +1,4 @@
-# Database Skill — Meeting Prep Assistant
+# Database Skill — BeforeCall
 
 ## Purpose
 Manage Prisma schema, migrations, indexes, and PostgreSQL production deployment.

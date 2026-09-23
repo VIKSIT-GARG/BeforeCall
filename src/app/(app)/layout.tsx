@@ -11,19 +11,21 @@ import {
   ChevronLeft,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { getCurrentUser } from "@/lib/current-user"
 import { NotificationBell } from "@/components/layout/NotificationBell"
 import { GlobalSearchButton } from "@/components/layout/GlobalSearchButton"
 
 export const metadata: Metadata = {
-  title: "Dashboard — Meeting Prep Assistant",
+  title: "Dashboard — BeforeCall",
   description: "Your meeting preparation workspace",
 }
 
-export default function AppLayout({
+export default async function AppLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const user = await getCurrentUser()
   return (
     <div className="min-h-screen bg-background flex">
       <aside className="hidden lg:flex lg:flex-col fixed lg:static inset-y-0 left-0 z-40 w-64 border-r border-border bg-card">
@@ -32,7 +34,7 @@ export default function AppLayout({
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
               <Brain className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span className="font-display font-semibold text-lg">Meeting Prep</span>
+            <span className="font-display font-semibold text-lg">BeforeCall</span>
           </Link>
         </div>
 
@@ -46,7 +48,7 @@ export default function AppLayout({
         <div className="p-4 border-t border-border">
           <NavItem href="/settings" icon={Settings} label="Settings" />
           <div className="mt-4 rounded-xl bg-muted p-3">
-            <p className="text-xs font-medium">Your Workspace</p>
+            <p className="text-xs font-medium">{user.plan}</p>
             <p className="text-xs text-muted-foreground">Evidence-backed intelligence</p>
           </div>
         </div>
@@ -65,11 +67,11 @@ export default function AppLayout({
             <NotificationBell />
             <div className="flex items-center gap-2 pl-2 border-l border-border">
               <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-medium text-sm">
-                You
+                {user.initials}
               </div>
               <div className="hidden sm:block text-left">
-                <p className="text-sm font-medium">You</p>
-                <p className="text-xs text-muted-foreground">Your Workspace</p>
+                <p className="text-sm font-medium">{user.name}</p>
+                <p className="text-xs text-muted-foreground">{user.plan}</p>
               </div>
             </div>
           </div>

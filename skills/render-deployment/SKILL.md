@@ -1,4 +1,4 @@
-# Render Deployment Skill — Meeting Prep Assistant
+# Render Deployment Skill — BeforeCall
 
 ## Purpose
 Configure and troubleshoot production deployment to Render.
@@ -35,7 +35,7 @@ Render Web Service (Next.js)
 ```yaml
 services:
   - type: web
-    name: meeting-prep-assistant
+    name: beforecall
     runtime: node
     plan: starter
     buildCommand: npm ci && npm run build
@@ -46,7 +46,7 @@ services:
         value: production
       - key: DATABASE_URL
         fromDatabase:
-          name: meeting-prep-db
+          name: beforecall-db
           property: connectionString
       - key: TAVILY_API_KEY
         sync: false
@@ -57,10 +57,10 @@ services:
       - key: PRODUCTION_LLM_MODEL
         value: gpt-4o-mini
       - key: NEXT_PUBLIC_APP_URL
-        value: https://meeting-prep-assistant.onrender.com
+        value: https://beforecall.onrender.com
 
 databases:
-  - name: meeting-prep-db
+  - name: beforecall-db
     databaseName: meeting_prep
     user: meeting_prep_user
     plan: starter

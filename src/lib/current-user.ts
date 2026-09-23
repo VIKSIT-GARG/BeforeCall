@@ -1,4 +1,4 @@
-"use server"
+import 'server-only';
 import { cookies } from "next/headers"
 
 // abstraction for current user — future: replace with NextAuth getServerSession

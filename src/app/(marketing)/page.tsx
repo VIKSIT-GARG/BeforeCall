@@ -5,7 +5,7 @@ function EditorialHeader() {
     <header className="mx-auto w-full max-w-[1150px] px-8 py-5">
       <div className="flex items-center justify-between">
         <Link href="/" className="font-mono text-[11px] tracking-[0.2em] font-bold">
-          MEETING PREP
+          BEFORECALL
         </Link>
         <nav className="flex items-center gap-6 font-mono text-[11px] tracking-[0.18em] uppercase" aria-label="Primary">
           <Link href="/dashboard" className="hover:underline underline-offset-4">Dashboard</Link>
