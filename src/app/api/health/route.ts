@@ -8,11 +8,15 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   const started = Date.now();
   let dbStatus: 'connected'|'disconnected' = 'connected';
+  let dbError: string | null = null;
   try {
     await prisma.$queryRaw`SELECT 1`;
   } catch (error) {
     console.error('Health check failed:', error);
     dbStatus = 'disconnected';
+    dbError = error instanceof Error
+      ? error.message.replace(/postgresql:\/\/[^@]+@/gi, 'postgresql://***:***@')
+      : 'Unknown DB error';
   }
 
   const providerName = getProviderName();
@@ -39,6 +43,7 @@ export async function GET() {
     timestamp: new Date().toISOString(),
     version: process.env.npm_package_version || 'unknown',
     database: dbStatus,
+    databaseError: dbError ?? undefined,
     llm,
     environment: process.env.NODE_ENV || 'development',
     latencyMs: Date.now() - started,

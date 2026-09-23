@@ -126,8 +126,12 @@ export async function POST(request: NextRequest) {
     try { console.timeEnd('api:meetings:create'); } catch {}
     return NextResponse.json({ success: true, data: meeting });
   } catch (error) {
-    // Never leak stack traces or secrets; log generic message without PII
-    console.error('Error creating meeting:', error instanceof Error ? error.message : 'Unknown error');
-    return NextResponse.json({ success: false, error: 'Failed to create meeting' }, { status: 500 });
+    const rawMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Error creating meeting:', rawMessage);
+    const safeMessage = rawMessage.replace(/postgresql:\/\/[^@]+@/gi, 'postgresql://***:***@');
+    return NextResponse.json(
+      { success: false, error: `Failed to create meeting: ${safeMessage}` },
+      { status: 500 }
+    );
   }
 }

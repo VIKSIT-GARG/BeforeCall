@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "NODE_OPTIONS='--max-old-space-size=2048' next dev",
     "dev:clean": "fuser -k 3000/tcp 2>/dev/null || true; NODE_OPTIONS='--max-old-space-size=2048' next dev",
-    "build": "NODE_OPTIONS='--max-old-space-size=2048' next build",
+    "build": "prisma generate && NODE_OPTIONS='--max-old-space-size=2048' next build",
     "start": "NODE_OPTIONS='--max-old-space-size=2048' next start",
     "clean": "rm -rf .next",
     "lint": "next lint",
